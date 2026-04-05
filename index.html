@@ -16,71 +16,65 @@
 
     <script>
         // --- 前端基本防禦 (Security Blockers) ---
-        // 1. 阻擋右鍵選單
         document.addEventListener('contextmenu', event => event.preventDefault());
-        // 2. 阻擋開發者工具快捷鍵 (F12, Ctrl+Shift+I, Ctrl+U, etc.)
         document.onkeydown = function(e) {
-            if (e.keyCode == 123) return false; // F12
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; // Ctrl+Shift+C
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; // Ctrl+Shift+J
-            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // Ctrl+U
-            if (e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) return false; // Ctrl+S
-            if (e.ctrlKey && e.keyCode == 'P'.charCodeAt(0)) return false; // Ctrl+P
+            if (e.keyCode == 123) return false; 
+            if (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) return false;
+            if (e.ctrlKey && (e.keyCode == 'U'.charCodeAt(0) || e.keyCode == 'S'.charCodeAt(0) || e.keyCode == 'P'.charCodeAt(0))) return false;
         };
-        // 3. 網域白名單綁定 (Domain Lock - 示範邏輯，本機預覽會略過)
-        /*
-        const allowedDomains = ['localhost', '127.0.0.1', 'www.ibs.ncnu.edu.tw'];
-        const currentDomain = window.location.hostname;
-        if (!allowedDomains.includes(currentDomain) && currentDomain !== "") {
-            window.location.href = "https://www.ibs.ncnu.edu.tw/index.php/faculty/tenured-professor/299-smlo";
-        }
-        */
 
-        // Tailwind Config for BCG Style
+        // Tailwind Config (BCG Style)
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
                         bcg: {
-                            navy: '#0A3254',
-                            green: '#007A53',
-                            gray: '#F3F4F6',
-                            darkbg: '#111827',
-                            darkcard: '#1F2937',
-                            accent: '#C5A97A' // Gold accent
+                            navy: '#0A3254', green: '#007A53', gray: '#F3F4F6',
+                            darkbg: '#111827', darkcard: '#1F2937', accent: '#C5A97A'
                         }
                     },
-                    fontFamily: {
-                        sans: ['"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-                    }
+                    fontFamily: { sans: ['"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'] }
                 }
             }
         }
     </script>
     <style>
         /* 禁用文字選取與拖曳 */
-        body {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-        img { pointer-events: none; }
-        
-        /* 翻轉卡片動畫 */
-        .perspective-1000 { perspective: 1000px; }
-        .transform-style-3d { transform-style: preserve-3d; }
-        .backface-hidden { backface-visibility: hidden; }
-        .rotate-y-180 { transform: rotateY(180deg); }
-        .transition-transform-700 { transition: transform 0.7s ease-in-out; }
-
-        /* Custom Scrollbar */
+        body { -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none; }
+        img, svg { pointer-events: none; }
         ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        
+        /* 卡片翻轉 3D 特效 */
+        .perspective { perspective: 1000px; }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .flip-card-inner.flipped {
+            transform: rotateY(180deg);
+        }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 0.375rem;
+        }
+        .flip-card-back {
+            transform: rotateY(180deg);
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
     </style>
 </head>
 <body class="bg-gray-100 dark:bg-bcg-darkbg text-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
@@ -95,20 +89,21 @@
                 brand: "理論前導：數位替代與不性婚育模型",
                 nav: ["0. 課程概要", "1. 科技普及與人際替代 (X→Me1)", "2. 責任移轉與社會退縮 (Me2)", "3. 數位依賴惡性迴路 (Me1↺Me2)", "4. 不性婚育的終局效應 (Y)", "5. 結構性催化劑 (Z)", "6. 實證研究設計", "7. 互動實驗室", "8. 外部學習資源", "9. 學習歷程分析"],
                 ui: {
-                    play: "播放導覽", pause: "暫停", stop: "停止",
-                    lang: "EN", themeDark: "淺色模式", themeLight: "深色模式",
+                    play: "播放語音導覽", pause: "暫停語音", stop: "停止語音",
+                    lang: "EN", langToggle: "en", themeDark: "淺色模式", themeLight: "深色模式",
                     top: "回到頂端", prev: "上一單元", next: "下一單元",
-                    flip: "翻轉背頁", nextCard: "下一組卡片", retryCard: "重新複習卡片",
+                    flip: "點擊翻轉背頁", nextCard: "下一組卡片", retryCard: "重新複習卡片",
                     nextQuiz: "下一組測驗", retryQuiz: "重新測驗", submit: "提交",
                     correct: "答對了！展現了極佳的概念掌握度。", wrong: "需再釐清，請回顧理論邊界與定義。",
                     export: "匯出學習歷程 (CSV)", clear: "刷新記錄",
                     group: "組別", studentId: "學號", name: "姓名",
-                    stats: ["停留時間(秒)", "點擊次數", "卡片翻轉次數", "測驗答對題數"]
+                    stats: ["停留時間(秒)", "點擊互動數", "卡片翻轉次數", "測驗答對總數"],
+                    labTabs: ["Lab 1: 動力模擬", "Lab 2: 路徑建構", "Lab 3: 情境配對", "Lab 4: 方法決策"]
                 },
                 content: [
                     {   // 0
                         title: "課程概要 (Course Overview)",
-                        desc: "本互動學習模組旨在解構「科技普及(X)」如何透過「數位替代(Me1)」與「獨來獨往傾向(Me2)」，最終導致「不性婚育(Y)」的總體人口現象。本提案具備強烈的理論整合企圖心，將宏觀的人口崩塌現象，連結至微觀的心理行為機制。學習者將透過本系統，逐步釐清構念邊界（Construct Boundaries），探討從娛樂互動、情感支持到親密關係的全面替代過程。此外，我們將檢視「責任移轉」這一核心創新概念，了解個體如何將不進入關係的狀態進行認知合理化。本模組亦涵蓋結構強化變數（如經濟壓力、性別結構）的調節作用，並探討如何透過 SEM 等高階量化技術進行實證檢驗。請點擊下方單元開始探索。",
+                        desc: "本互動學習模組旨在解構「科技普及(X)」如何透過「數位替代(Me1)」與「獨來獨往傾向(Me2)」，最終導致「不性婚育(Y)」的總體人口現象。\n\n本提案具備強烈的理論整合企圖心，將宏觀的人口崩塌現象，連結至微觀的心理行為機制。學習者將透過本系統，逐步釐清構念邊界（Construct Boundaries），探討從娛樂互動、情感支持到親密關係的全面替代過程。此外，我們將檢視「責任移轉」這一核心創新概念，了解個體如何將不進入關係的狀態進行認知合理化。\n\n本模組亦涵蓋結構強化變數（如經濟壓力、性別結構）的調節作用，並探討如何透過 SEM 等高階量化技術進行實證檢驗。請點擊下方單元開始探索。",
                         highlights: ["建立具備因果邏輯的概念模型", "區分變數的分析層次 (Analysis Levels)", "嚴謹化操作型定義免於病理化偏誤"]
                     },
                     {   // 1
@@ -158,7 +153,7 @@
                     },
                     {   // 4
                         title: "4. 不性婚育的終局效應 (Y)",
-                        desc: "將「不性婚育」視為單一結果變項 (Y) 在理論上極具張力，但在實證操作上存在「異質性過高」的風險。因為戀愛、性行為、結婚、生育所牽涉的時間尺度與成本結構截然不同。\n\n為求嚴謹，本計畫建議將 Y 解構為階段性的光譜：Y1 (戀愛/交往參與下降，可短期觀察) → Y2 (性行為頻率降低，行為層面) → Y3 (婚育意圖/規劃瓦解，牽涉長期制度與資源配置)。\n\n此外，我們必須謹慎處理「分析層次 (Levels of Analysis)」跨越的學術風險：從個體心理機制 (微觀) 推論至國家人口崩塌 (宏觀)，必須論述這是一個『具說服力的機制 (plausible mechanism)』，而非草率的直接等號。",
+                        desc: "將「不性婚育」視為單一結果變項 (Y) 在理論上極具張力，但在實證操作上存在「異質性過高」的風險。因為戀愛、性行為、結婚、生育所牽涉的時間尺度與成本結構截然不同。\n\n為求嚴謹，本計畫建議將 Y 解構為階段性的光譜：Y1 (戀愛/交往參與下降，可短期觀察) → Y2 (性行為頻率降低，行為層面) → Y3 (婚育意圖/規劃瓦解，牽涉長期制度與資源配置)。\n\n此外，我們必須謹慎處理「分析層次 (Levels of Analysis)」跨越的學術風險：從個體心理機制 (微觀)推論至國家人口崩塌 (宏觀)，必須論述這是一個『具說服力的機制 (plausible mechanism)』，而非草率的直接等號。",
                         highlights: ["結果變項解構：Y1, Y2, Y3", "戀愛、性、婚育的成本與時間尺度差異", "警惕分析層次謬誤 (Ecological Fallacy)"],
                         cards: [
                             { front: "不性婚育異質性", back: "戀愛屬短期互動，生育涉長期資源投入，兩者受科技影響的機制與速度不同。" },
@@ -201,47 +196,39 @@
                             { q: "下列哪一種語氣最適合出現在嚴謹的研究計畫書中？", options: ["本研究已徹底證明科技是毀滅人類繁衍的毒藥", "本模型預期科技普及將透過特定機制影響青年婚育意圖，有待實證檢驗", "毫無疑問，不性婚育完全是智慧型手機造成的", "只要拔掉網路線，生育率明天就會回升"], ans: 1 }
                         ]
                     }
-                ],
-                lab: {
-                    title: "7. 互動實驗室 (Interactive Lab)",
-                    simTitle: "系統動力模擬：參數調節與模型預測",
-                    simDesc: "透過調整下方「科技暴露度」與「經濟壓力」參數，觀察其對「數位依賴(Me1)」、「退縮傾向(Me2)」及最終「不婚育機率(Y)」的理論影響。",
-                    xLabel: "科技暴露度 (Tech Exposure)",
-                    zLabel: "經濟與結構壓力 (Economic/Structural Pressure)",
-                    btnSimulate: "執行模型運算",
-                    resultTitle: "理論預測結果矩陣",
-                    resMe1: "數位替代依賴度", resMe2: "責任移轉/退縮指數", resY: "不性婚育終局機率"
-                }
+                ]
             },
             en: {
-                brand: "Conceptual Model: Digital Substitution & Asexual/Childless Trends",
-                nav: ["0. Course Overview", "1. Tech & Substitution (X→Me1)", "2. Responsibility Transfer (Me2)", "3. Vicious Cycle (Me1↺Me2)", "4. Endgame Effect (Y)", "5. Structural Catalysts (Z)", "6. Empirical Design", "7. Interactive Lab", "8. External Resources", "9. Learning Analytics"],
+                brand: "Digital Substitution Model SPA",
+                nav: ["0. Overview", "1. Tech & Sub (X→Me1)", "2. Withdrawal (Me2)", "3. Vicious Cycle (Me1↺Me2)", "4. Endgame Effect (Y)", "5. Catalysts (Z)", "6. Empirical Design", "7. Interactive Labs", "8. External Resources", "9. Analytics"],
                 ui: {
-                    play: "Play Guide", pause: "Pause", stop: "Stop",
-                    lang: "TW", themeDark: "Light Mode", themeLight: "Dark Mode",
-                    top: "Back to Top", prev: "Previous", next: "Next",
-                    flip: "Flip Card", nextCard: "Next Cards", retryCard: "Retry Cards",
+                    play: "Play Voice Guide", pause: "Pause Voice", stop: "Stop Voice",
+                    lang: "TW", langToggle: "tw", themeDark: "Light Mode", themeLight: "Dark Mode",
+                    top: "Back to Top", prev: "Previous Module", next: "Next Module",
+                    flip: "Click to Flip", nextCard: "Next Cards", retryCard: "Retry Cards",
                     nextQuiz: "Next Quiz", retryQuiz: "Retry Quiz", submit: "Submit",
-                    correct: "Correct! Excellent grasp of the concept.", wrong: "Review needed. Check construct boundaries.",
+                    correct: "Correct! Excellent grasp of the concept.", wrong: "Review needed. Check theoretical boundaries.",
                     export: "Export Analytics (CSV)", clear: "Clear Records",
                     group: "Group", studentId: "Student ID", name: "Name",
-                    stats: ["Time Spent(s)", "Clicks", "Cards Flipped", "Quiz Correct"]
+                    stats: ["Time Spent(s)", "Total Clicks", "Cards Flipped", "Quiz Correct"],
+                    labTabs: ["Lab 1: Simulation", "Lab 2: Path Builder", "Lab 3: Concept Match", "Lab 4: Method Tree"]
                 },
                 content: [
                     {
                         title: "Course Overview",
-                        desc: "This interactive module deconstructs how 'Technology Popularization (X)' via 'Digital Substitution (Me1)' and 'Solitary Tendency (Me2)' leads to the macro-demographic phenomenon of 'Asexual/Aromantic/Childless trends (Y)'. This proposal demonstrates strong theoretical integration, linking macro demographic collapse to micro psychological mechanisms. Learners will clarify construct boundaries, exploring substitution from entertainment to intimacy. We examine 'Responsibility Transfer', exploring how individuals cognitively rationalize not entering relationships. The module also covers the moderating effects of structural variables (economic pressure, gender structure) and empirical validation via advanced quantitative techniques like SEM. Click below to start.",
-                        highlights: ["Causal conceptual modeling", "Differentiating levels of analysis", "Rigorous operational definitions avoiding pathologization"]
+                        desc: "This interactive module deconstructs how 'Technology Popularization (X)' via 'Digital Substitution (Me1)' and 'Solitary Tendency (Me2)' leads to the macro-demographic phenomenon of 'Asexual and Childless trends (Y)'.\n\nThis proposal demonstrates strong theoretical integration, linking macro demographic collapse to micro psychological mechanisms. Learners will clarify construct boundaries, exploring substitution from entertainment to intimacy. We examine 'Responsibility Transfer', exploring how individuals cognitively rationalize not entering relationships.\n\nThe module also covers the moderating effects of structural variables (economic pressure, gender structure) and empirical validation via advanced quantitative techniques like SEM.",
+                        highlights: ["Causal conceptual modeling", "Differentiating levels of analysis", "Rigorous operational definitions"],
+                        cards: null, quiz: null
                     },
                     {
                         title: "1. Technology Popularization & Substitution (X → Me1)",
-                        desc: "First, we must clarify the boundary between 'Technology Popularization (X)' and 'problematic use'. X is defined here as accessibility and media exposure, not addiction. When tech seamlessly integrates into life, it provides powerful 'substitution functions (Me1)'.\n\nThis substitution is hierarchical: from shallow 'entertainment substitution' (social media), mid-level 'emotional support substitution' (echo chambers), down to deep 'intimacy substitution' (virtual partners, immersive porn).\n\nWhen the digital environment offers high-efficiency, friction-free relationship rewards at minimal marginal cost, the motivation for real-world interaction erodes.",
+                        desc: "First, we must clarify the boundary between 'Technology Popularization (X)' and 'problematic use'. X is defined here as accessibility and media exposure, not addiction. When tech seamlessly integrates into life, it provides powerful 'substitution functions (Me1)'.\n\nThis substitution is hierarchical: from shallow 'entertainment substitution' (social media), mid-level 'emotional support substitution', down to deep 'intimacy substitution' (virtual partners, immersive porn).\n\nWhen the digital environment offers high-efficiency, friction-free relationship rewards at minimal marginal cost, the motivation for real-world interaction erodes.",
                         highlights: ["Tech Popularization ≠ Tech Addiction", "Three levels: Entertainment, Emotion, Intimacy", "Low-cost relationship rewards"],
                         cards: [
                             { front: "Tech Popularization", back: "Infrastructure accessibility, distinct from pathological 'addiction'." },
-                            { front: "Digital Substitution", back: "Gaining psychological/physiological satisfaction via digital mediums instead of physical interactions." },
-                            { front: "Entertainment Sub.", back: "Using media/games to eliminate boredom, reducing need for physical socializing." },
-                            { front: "Intimacy Sub.", back: "Using virtual companions to meet intimacy needs at low cost, avoiding real-world friction." }
+                            { front: "Digital Substitution", back: "Gaining psychological satisfaction via digital mediums instead of physical interactions." },
+                            { front: "Entertainment Sub.", back: "Using media to eliminate boredom, reducing need for physical socializing." },
+                            { front: "Intimacy Sub.", back: "Using virtual companions to meet intimacy needs, avoiding real-world friction." }
                         ],
                         quiz: [
                             { q: "Why distinguish 'tech popularization' from 'addiction' in the model?", options: ["To lengthen the questionnaire", "Addiction is an outcome, popularization is an antecedent; confusing them ruins causal inference", "They are perfectly negatively correlated", "To meet qualitative standards"], ans: 1 },
@@ -254,13 +241,13 @@
                         highlights: ["Core Innovation: Responsibility Transfer", "From 'inability' to cognitive 'refusal'", "Measurement of Latent vs. Correlated variables"],
                         cards: [
                             { front: "Solitary Tendency", back: "Not just behavioral isolation, but rejection of relationship responsibilities." },
-                            { front: "Social Withdrawal", back: "Reducing physical participation, preferring controllable private/digital spaces." },
+                            { front: "Social Withdrawal", back: "Reducing physical participation, preferring controllable private spaces." },
                             { front: "Responsibility Transfer", back: "Viewing traditional relationship maintenance as an unreasonable burden, rationalizing exit." },
                             { front: "Correlated Mediators", back: "Statistical consideration: withdrawal and transfer may independently affect outcomes." }
                         ],
                         quiz: [
-                            { q: "What unique role does 'Responsibility Transfer' play?", options: ["Explains youth wealth", "Advances relationship avoidance from 'inability' to 'cognitive rationalization and proactive exit'", "Proves traditional marriage superiority", "Advocates government subsidies"], ans: 1 },
-                            { q: "What is the main measurement challenge for Me2?", options: ["Untranslatable to English", "Social desirability bias", "These dimensions may not form a single latent construct, requiring correlated mediator models", "High printing costs"], ans: 2 }
+                            { q: "What unique role does 'Responsibility Transfer' play?", options: ["Explains youth wealth", "Advances relationship avoidance from 'inability' to 'proactive exit'", "Proves traditional marriage superiority", "Advocates government subsidies"], ans: 1 },
+                            { q: "What is the main measurement challenge for Me2?", options: ["Untranslatable to English", "Social desirability bias", "These dimensions may not form a single latent construct", "High printing costs"], ans: 2 }
                         ]
                     },
                     {
@@ -271,7 +258,7 @@
                             { front: "Feedback Loop", back: "System output becomes input; isolated behavior deepens digital reliance." },
                             { front: "Decreased Tolerance", back: "Long-term digital reliance lowers tolerance for real-world interpersonal friction." },
                             { front: "Longitudinal Study", back: "Repeated measurements of the same sample over time to establish causality." },
-                            { front: "Cross-sectional Limits", back: "One-time surveys cannot prove the cyclical causality between Me1 and Me2." }
+                            { front: "Cross-sectional Limits", back: "One-time surveys cannot prove the cyclical causality." }
                         ],
                         quiz: [
                             { q: "What does the Me1 ↺ Me2 loop explain?", options: ["Tech directly increases birth rates", "Social withdrawal deepens digital substitution, creating a vicious cycle", "Youth prefer new phones", "VR has replaced reality"], ans: 1 },
@@ -280,7 +267,7 @@
                     },
                     {
                         title: "4. Endgame Effect (Y)",
-                        desc: "Treating 'Asexual/Childless' as a single outcome (Y) is theoretically ambitious but empirically risky due to high heterogeneity. Dating, sex, marriage, and childbirth involve vastly different timeframes and costs.\n\nThis proposal suggests deconstructing Y into stages: Y1 (dating decline, short-term) → Y2 (sex frequency drop) → Y3 (marriage/fertility intention collapse, long-term resource allocation).\n\nFurthermore, we must avoid the Ecological Fallacy (crossing levels of analysis). Inferring macro national demographic collapse from micro psychological mechanisms requires arguing a 'plausible mechanism', not a direct equation.",
+                        desc: "Treating 'Asexual/Childless' as a single outcome (Y) is theoretically ambitious but empirically risky due to high heterogeneity. Dating, sex, marriage, and childbirth involve vastly different timeframes and costs.\n\nThis proposal suggests deconstructing Y into stages: Y1 (dating decline) → Y2 (sex frequency drop) → Y3 (marriage/fertility intention collapse).\n\nFurthermore, we must avoid the Ecological Fallacy (crossing levels of analysis). Inferring macro national demographic collapse from micro psychological mechanisms requires arguing a 'plausible mechanism', not a direct equation.",
                         highlights: ["Deconstructing Y: Y1, Y2, Y3", "Differing timeframes and costs", "Beware Ecological Fallacy"],
                         cards: [
                             { front: "Outcome Heterogeneity", back: "Dating is short-term; child-rearing is long-term. Tech affects them differently." },
@@ -295,17 +282,17 @@
                     },
                     {
                         title: "5. Structural Catalysts (Z)",
-                        desc: "Digital substitution doesn't happen in a vacuum. Social structures act as strong Moderators (Z). This model includes 'Economic Pressure' and 'Gender Structure'.\n\n1) Z × (X → Me1): Under high economic stress, do low-cost digital substitutes become more attractive?\n2) Z × (Me1 → Me2): Do rigid gender roles push those seeking substitution to fully exit real relationships to avoid expectations?\n3) Z × (Me2 → Y): Does economic pressure lock in 'responsibility transfer', making the asexual/childless outcome irreversible? These are catalysts for tech toxicity.",
+                        desc: "Digital substitution doesn't happen in a vacuum. Social structures act as strong Moderators (Z). This model includes 'Economic Pressure' and 'Gender Structure'.\n\n1) Z × (X → Me1): Under high economic stress, do low-cost digital substitutes become more attractive?\n2) Z × (Me1 → Me2): Do rigid gender roles push those seeking substitution to fully exit real relationships?\n3) Z × (Me2 → Y): Does economic pressure lock in 'responsibility transfer', making the outcome irreversible?",
                         highlights: ["Economic pressure as accelerator", "Exclusion effect of rigid gender roles", "Three-stage moderation"],
                         cards: [
                             { front: "Moderator", back: "A third variable affecting the strength/direction of the relationship between X and Y." },
-                            { front: "Economic Catalyst", back: "Low wages make real dating a luxury, amplifying the appeal of virtual interactions." },
-                            { front: "Gender Structure", back: "Rigid expectations push youths unable to meet them into total social withdrawal (lying flat)." },
+                            { front: "Economic Catalyst", back: "Low wages make real dating a luxury, amplifying virtual interactions." },
+                            { front: "Gender Structure", back: "Rigid expectations push youths unable to meet them into total social withdrawal." },
                             { front: "Three-stage Check", back: "Assessing where Z exerts the strongest moderating effect in the causal chain." }
                         ],
                         quiz: [
                             { q: "What role does 'Economic Pressure' play?", options: ["Independent Variable (X)", "Mediator", "Moderator (Z)", "Control Variable"], ans: 2 },
-                            { q: "How do 'rigid gender roles' affect the model?", options: ["Boosts real birth rates", "Accelerates social withdrawal (Me2) for youth unable to meet societal expectations", "Reduces device dependency", "Improves pay equity"], ans: 1 }
+                            { q: "How do 'rigid gender roles' affect the model?", options: ["Boosts real birth rates", "Accelerates social withdrawal (Me2) for youth unable to meet expectations", "Reduces device dependency", "Improves pay equity"], ans: 1 }
                         ]
                     },
                     {
@@ -315,54 +302,411 @@
                         cards: [
                             { front: "Phased Strategy", back: "Establish the basic causal chain before adding complex moderators and loops." },
                             { front: "RI-CLPM", back: "Random Intercept Cross-Lagged Panel Model for separating within/between group variance." },
-                            { front: "Multi-group Analysis", back: "Comparing SEM path coefficients across different groups (e.g., high/low economic stress)." },
-                            { front: "Tone Control", back: "Academic proposals must remain falsifiable; change 'proven disaster' to 'hypothesis to be tested'." }
+                            { front: "Multi-group Analysis", back: "Comparing SEM path coefficients across different groups." },
+                            { front: "Tone Control", back: "Academic proposals must remain falsifiable; use 'hypothesis to be tested'." }
                         ],
                         quiz: [
                             { q: "What is the recommended strategy for academic peer review?", options: ["Test everything at once", "Use 'Ultimate Disaster' in title", "Phased validation starting with East Asian youth", "Abandon quantitative methods"], ans: 2 },
-                            { q: "Which tone is most appropriate for a rigorous proposal?", options: ["Tech is proven to destroy humanity", "The model expects tech to affect intentions via specific mechanisms, pending validation", "Smartphones solely cause childlessness", "Unplugging the internet will fix birth rates tomorrow"], ans: 1 }
+                            { q: "Which tone is most appropriate for a rigorous proposal?", options: ["Tech is proven to destroy humanity", "The model expects tech to affect intentions via specific mechanisms, pending validation", "Smartphones solely cause childlessness", "Unplugging the internet will fix birth rates"], ans: 1 }
                         ]
                     }
-                ],
-                lab: {
-                    title: "7. Interactive Lab",
-                    simTitle: "System Dynamics: Parameter Moderation",
-                    simDesc: "Adjust 'Tech Exposure' and 'Economic Stress' to observe their theoretical impact on 'Digital Substitution(Me1)', 'Withdrawal(Me2)', and the 'Asexual/Childless(Y)' outcome.",
-                    xLabel: "Tech Exposure (X)",
-                    zLabel: "Economic/Structural Stress (Z)",
-                    btnSimulate: "Run Simulation",
-                    resultTitle: "Theoretical Prediction Matrix",
-                    resMe1: "Digital Substitution Reliance", resMe2: "Responsibility Transfer Index", resY: "Asexual/Childless Probability"
-                }
+                ]
             }
         };
 
-        // --- 主程式 ---
+        // --- SVG 圖像工廠 (TopicSVG) ---
+        const TopicSVG = ({ tabIndex, isDark }) => {
+            const strokeColor = isDark ? "#C5A97A" : "#0A3254"; 
+            const bgColor = isDark ? "#1F2937" : "#F3F4F6";
+            const textColor = isDark ? "#F3F4F6" : "#0A3254";
+
+            if (tabIndex === 0) return (
+                <svg viewBox="0 0 800 300" className="w-full h-full drop-shadow-md">
+                    <rect width="100%" height="100%" fill={bgColor} rx="10"/>
+                    <text x="400" y="40" fill={textColor} fontSize="20" fontWeight="bold" textAnchor="middle">研究概念模型總覽 (Conceptual Model)</text>
+                    <g fill="#0A3254" stroke="#C5A97A" strokeWidth="2">
+                        <rect x="50" y="120" width="120" height="60" rx="8" />
+                        <rect x="250" y="120" width="120" height="60" rx="8" />
+                        <rect x="450" y="120" width="120" height="60" rx="8" />
+                        <rect x="650" y="120" width="120" height="60" rx="8" fill="#8B0000"/>
+                        <rect x="350" y="220" width="120" height="40" rx="8" fill="#007A53"/>
+                    </g>
+                    <g fill="#FFF" fontSize="14" fontWeight="bold" textAnchor="middle">
+                        <text x="110" y="155">X: 科技普及</text>
+                        <text x="310" y="155">Me1: 數位替代</text>
+                        <text x="510" y="155">Me2: 獨來獨往</text>
+                        <text x="710" y="155">Y: 不性婚育</text>
+                        <text x="410" y="245">Z: 結構強化 (調節)</text>
+                    </g>
+                    <g stroke={strokeColor} strokeWidth="3" fill="none" markerEnd="url(#arrow)">
+                        <line x1="170" y1="150" x2="240" y2="150" />
+                        <line x1="370" y1="150" x2="440" y2="150" />
+                        <line x1="570" y1="150" x2="640" y2="150" />
+                        <path d="M 510 120 Q 410 60 310 120" strokeDasharray="5,5" /> 
+                    </g>
+                    <g stroke="#007A53" strokeWidth="2" strokeDasharray="4,4" fill="none" markerEnd="url(#arrowGreen)">
+                        <line x1="410" y1="220" x2="205" y2="150" />
+                        <line x1="410" y1="220" x2="405" y2="150" />
+                        <line x1="410" y1="220" x2="605" y2="150" />
+                    </g>
+                    <defs>
+                        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill={strokeColor} /></marker>
+                        <marker id="arrowGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#007A53" /></marker>
+                    </defs>
+                </svg>
+            );
+
+            if (tabIndex === 1) return (
+                <svg viewBox="0 0 800 300" className="w-full h-full">
+                    <rect width="100%" height="100%" fill={bgColor} rx="10"/>
+                    <g stroke={strokeColor} strokeWidth="2" fill="none">
+                        <rect x="200" y="50" width="100" height="200" rx="10" />
+                        <circle cx="250" cy="230" r="10" />
+                        <path d="M 320 150 Q 350 100 400 150 T 480 150" strokeWidth="3" />
+                        <path d="M 320 170 Q 350 120 400 170 T 480 170" strokeWidth="3" opacity="0.6"/>
+                    </g>
+                    <g fill={textColor} fontSize="16" fontWeight="bold">
+                        <text x="500" y="110">1. 娛樂互動替代 (遊戲/影音)</text>
+                        <text x="500" y="160">2. 情感支持替代 (社群同溫層)</text>
+                        <text x="500" y="210">3. 親密關係替代 (AI伴侶/色情)</text>
+                    </g>
+                </svg>
+            );
+
+            if (tabIndex === 3) return (
+                <svg viewBox="0 0 800 300" className="w-full h-full">
+                    <rect width="100%" height="100%" fill={bgColor} rx="10"/>
+                    <g fill={textColor} fontSize="18" fontWeight="bold" textAnchor="middle">
+                        <text x="400" y="150">Me1: 數位替代</text>
+                        <text x="400" y="50">容忍度下降 / 真實互動減少</text>
+                        <text x="400" y="270">Me2: 獨來獨往傾向</text>
+                    </g>
+                    <g stroke="#C5A97A" strokeWidth="4" fill="none" markerEnd="url(#arrowLoop)">
+                        <path d="M 300 160 A 100 80 0 1 0 300 240" />
+                        <path d="M 500 240 A 100 80 0 1 0 500 160" />
+                    </g>
+                    <defs>
+                        <marker id="arrowLoop" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#C5A97A" /></marker>
+                    </defs>
+                </svg>
+            );
+
+            return (
+                <svg viewBox="0 0 800 300" className="w-full h-full opacity-80">
+                    <rect width="100%" height="100%" fill={bgColor} rx="10"/>
+                    <circle cx="400" cy="150" r="80" fill="none" stroke={strokeColor} strokeWidth="4" strokeDasharray="10,10" />
+                    <text x="400" y="155" fill={textColor} fontSize="20" fontWeight="bold" textAnchor="middle">Visual Placeholder P.{tabIndex}</text>
+                </svg>
+            );
+        };
+
+        const FlipCard = ({ card, addCount, isDark }) => {
+            const [flipped, setFlipped] = useState(false);
+            
+            const handleFlip = () => {
+                if (!flipped) addCount();
+                setFlipped(!flipped);
+            };
+
+            return (
+                <div className="relative w-full h-48 cursor-pointer perspective" onClick={handleFlip}>
+                    <div className={`flip-card-inner shadow-md ${flipped ? 'flipped' : ''}`}>
+                        <div className={`flip-card-front flex flex-col items-center justify-center p-4 text-center border-t-4 border-bcg-navy dark:border-bcg-accent ${isDark ? 'bg-gray-800 text-white' : 'bg-white text-bcg-navy'}`}>
+                            <h3 className="font-bold text-lg mb-2">{card.front}</h3>
+                            <div className="text-xs text-gray-400 mt-auto"><i className="fas fa-hand-pointer mr-1"></i>點擊翻轉</div>
+                        </div>
+                        <div className={`flip-card-back flex flex-col items-center justify-center p-6 text-center ${isDark ? 'bg-bcg-navy text-gray-200' : 'bg-bcg-navy text-white'}`}>
+                            <p className="text-sm leading-relaxed">{card.back}</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const ContentModule = ({ data, tabIndex, t, setAnalytics, isDark }) => {
+            const [cardIdx, setCardIdx] = useState(0);
+            const [quizIdx, setQuizIdx] = useState(0);
+            const [quizAns, setQuizAns] = useState(null);
+
+            return (
+                <div className="max-w-4xl mx-auto py-8 px-4 animate-fade-in">
+                    <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">{data.title}</h1>
+                    
+                    <div className="flex flex-wrap gap-2 mb-6">
+                        {data.highlights.map((hl, i) => (
+                            <span key={i} className="bg-bcg-gray dark:bg-gray-800 text-bcg-navy dark:text-bcg-accent px-3 py-1 text-sm font-semibold rounded-full border border-gray-200 dark:border-gray-700">
+                                <i className="fas fa-check-circle mr-2"></i>{hl}
+                            </span>
+                        ))}
+                    </div>
+
+                    <div className="prose dark:prose-invert max-w-none mb-10 text-lg leading-loose whitespace-pre-line">
+                        {data.desc}
+                    </div>
+
+                    <div className="w-full h-auto bg-white dark:bg-bcg-darkcard rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-2 mb-10 overflow-hidden">
+                        <TopicSVG tabIndex={tabIndex} isDark={isDark} />
+                    </div>
+
+                    {data.cards && (
+                        <div className="mb-12 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-lg">
+                            <h2 className="text-xl font-bold mb-4 flex items-center"><i className="fas fa-clone mr-2 text-bcg-accent"></i> Key Concepts ({cardIdx/2 + 1}/{(data.cards.length/2)})</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <FlipCard card={data.cards[cardIdx]} isDark={isDark} addCount={() => setAnalytics(p=>({...p, cardsFlipped: p.cardsFlipped+1}))} />
+                                {data.cards[cardIdx+1] && <FlipCard card={data.cards[cardIdx+1]} isDark={isDark} addCount={() => setAnalytics(p=>({...p, cardsFlipped: p.cardsFlipped+1}))} />}
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <button onClick={() => setCardIdx(0)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 transition text-sm font-semibold">{t.ui.retryCard}</button>
+                                {(cardIdx + 2) < data.cards.length && (
+                                    <button onClick={() => setCardIdx(cardIdx + 2)} className="px-4 py-2 bg-bcg-navy text-white rounded hover:bg-opacity-90 transition text-sm font-semibold">{t.ui.nextCard}</button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {data.quiz && (
+                        <div className="mb-8 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                            <h2 className="text-xl font-bold mb-4 flex items-center"><i className="fas fa-tasks mr-2 text-bcg-accent"></i> Quiz ({quizIdx+1}/{data.quiz.length})</h2>
+                            <div className="mb-4">
+                                <p className="font-semibold mb-3">{data.quiz[quizIdx].q}</p>
+                                <div className="space-y-2">
+                                    {data.quiz[quizIdx].options.map((opt, i) => {
+                                        let btnClass = "w-full text-left p-3 rounded border transition font-medium ";
+                                        if (quizAns === null) btnClass += "border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800";
+                                        else if (i === data.quiz[quizIdx].ans) btnClass += "bg-green-100 border-green-500 text-green-800 dark:bg-green-900/40 dark:text-green-300";
+                                        else if (quizAns === i) btnClass += "bg-red-100 border-red-500 text-red-800 dark:bg-red-900/40 dark:text-red-300";
+                                        else btnClass += "opacity-40 border-gray-200";
+
+                                        return (
+                                            <button key={i} onClick={() => { setQuizAns(i); if(i === data.quiz[quizIdx].ans) setAnalytics(p=>({...p, quizCorrect: p.quizCorrect+1})); }} disabled={quizAns !== null} className={btnClass}>
+                                                {String.fromCharCode(65+i)}. {opt}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                {quizAns !== null && (
+                                    <div className={`mt-4 p-3 rounded font-bold flex items-center ${quizAns === data.quiz[quizIdx].ans ? 'bg-green-50 text-green-700 dark:bg-transparent dark:text-green-400' : 'bg-red-50 text-red-700 dark:bg-transparent dark:text-red-400'}`}>
+                                        <i className={`fas ${quizAns === data.quiz[quizIdx].ans ? 'fa-check-circle' : 'fa-times-circle'} mr-2 text-lg`}></i>
+                                        {quizAns === data.quiz[quizIdx].ans ? t.ui.correct : t.ui.wrong}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex justify-end gap-2 mt-4">
+                                <button onClick={() => {setQuizIdx(0); setQuizAns(null);}} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded transition text-sm font-semibold hover:bg-gray-300">{t.ui.retryQuiz}</button>
+                                {(quizIdx + 1) < data.quiz.length && (
+                                    <button onClick={() => {setQuizIdx(quizIdx + 1); setQuizAns(null);}} className="px-4 py-2 bg-bcg-navy text-white rounded transition text-sm font-semibold hover:bg-opacity-90">{t.ui.nextQuiz}</button>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const InteractiveLabsContainer = ({ t }) => {
+            const [labTab, setLabTab] = useState(0);
+
+            // Lab 1
+            const [xVal, setXVal] = useState(50); const [zVal, setZVal] = useState(50);
+            const [simResult, setSimResult] = useState(null);
+
+            // Lab 2
+            const pathNodes = ["Y (不性婚育)", "Me1 (數位替代)", "X (科技普及)", "Me2 (獨來獨往)"];
+            const correctPath = ["X (科技普及)", "Me1 (數位替代)", "Me2 (獨來獨往)", "Y (不性婚育)"];
+            const [userPath, setUserPath] = useState([]);
+
+            // Lab 3
+            const scenarios = [
+                { text: "覺得經營感情太累，寧願躺平不負責", ans: "Me2" },
+                { text: "沉迷於 AI 聊天機器人獲得情緒價值", ans: "Me1" },
+                { text: "高速光纖網路與智慧型手機高度覆蓋", ans: "X" },
+                { text: "徹底放棄未來結婚生子的規劃", ans: "Y" }
+            ];
+            const [matched, setMatched] = useState({});
+
+            // Lab 4
+            const [methodAns, setMethodAns] = useState(null);
+
+            return (
+                <div className="max-w-4xl mx-auto py-8 px-4 animate-fade-in">
+                    <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">7. Interactive Labs</h1>
+                    
+                    <div className="flex flex-wrap gap-2 mb-8 bg-gray-200 dark:bg-gray-800 p-1 rounded-lg">
+                        {t.ui.labTabs.map((lName, i) => (
+                            <button key={i} onClick={()=>setLabTab(i)} className={`flex-1 py-2 text-sm font-bold rounded-md transition ${labTab === i ? 'bg-white dark:bg-bcg-darkcard shadow text-bcg-navy dark:text-bcg-accent' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}>
+                                {lName}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="bg-white dark:bg-bcg-darkcard p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 min-h-[400px]">
+                        {labTab === 0 && (
+                            <div>
+                                <h2 className="text-xl font-bold mb-4"><i className="fas fa-sliders-h mr-2 text-bcg-accent"></i>動力模擬器 (Dynamic Simulator)</h2>
+                                <p className="mb-6 text-sm text-gray-500">調整「科技暴露度」與「經濟壓力」，觀察對模型終局的理論預測影響。</p>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block mb-2 font-semibold">科技暴露度 (X): {xVal}%</label>
+                                        <input type="range" min="0" max="100" value={xVal} onChange={e=>setXVal(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"/>
+                                    </div>
+                                    <div>
+                                        <label className="block mb-2 font-semibold">經濟/結構壓力 (Z): {zVal}%</label>
+                                        <input type="range" min="0" max="100" value={zVal} onChange={e=>setZVal(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"/>
+                                    </div>
+                                    <button onClick={() => {
+                                        const x = xVal/100, z = zVal/100;
+                                        setSimResult({
+                                            me1: Math.min(100, Math.round((x*0.6 + z*0.4)*100)),
+                                            me2: Math.min(100, Math.round(((x*0.6+z*0.4)*0.5 + z*0.5)*100)),
+                                            y: Math.min(100, Math.round((((x*0.6+z*0.4)*0.5 + z*0.5)*0.7 + z*0.3)*100))
+                                        });
+                                    }} className="w-full py-3 bg-bcg-navy text-white font-bold rounded hover:bg-opacity-90">執行運算 (Run Simulation)</button>
+                                    
+                                    {simResult && (
+                                        <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700">
+                                            <div className="space-y-3">
+                                                <div><span className="text-sm font-bold">Me1 (數位依賴): {simResult.me1}%</span><div className="w-full bg-gray-200 rounded-full h-2 mt-1"><div className="bg-blue-500 h-2 rounded-full" style={{width: `${simResult.me1}%`}}></div></div></div>
+                                                <div><span className="text-sm font-bold">Me2 (退縮/責任移轉): {simResult.me2}%</span><div className="w-full bg-gray-200 rounded-full h-2 mt-1"><div className="bg-purple-500 h-2 rounded-full" style={{width: `${simResult.me2}%`}}></div></div></div>
+                                                <div><span className="text-sm font-bold">Y (不性婚育機率): {simResult.y}%</span><div className="w-full bg-gray-200 rounded-full h-2 mt-1"><div className="bg-red-500 h-2 rounded-full" style={{width: `${simResult.y}%`}}></div></div></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {labTab === 1 && (
+                            <div>
+                                <h2 className="text-xl font-bold mb-4"><i className="fas fa-project-diagram mr-2 text-bcg-accent"></i>因果路徑建構器 (Causal Path Builder)</h2>
+                                <p className="mb-6 text-sm text-gray-500">請依序點擊下方節點，建立正確的宏觀因果鏈 (共4步)。</p>
+                                <div className="flex gap-2 flex-wrap mb-8">
+                                    {pathNodes.filter(n => !userPath.includes(n)).map((node, i) => (
+                                        <button key={i} onClick={()=>setUserPath([...userPath, node])} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-full font-bold hover:bg-bcg-accent hover:text-white transition">
+                                            {node} <i className="fas fa-plus ml-1"></i>
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap min-h-[60px] p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                                    {userPath.length === 0 && <span className="text-gray-400">路徑區 (請從上方選擇)</span>}
+                                    {userPath.map((node, i) => (
+                                        <React.Fragment key={i}>
+                                            <div className="px-4 py-2 bg-bcg-navy text-white rounded-md font-bold">{node}</div>
+                                            {i < userPath.length - 1 && <i className="fas fa-arrow-right text-gray-400"></i>}
+                                        </React.Fragment>
+                                    ))}
+                                </div>
+                                <div className="mt-4 flex gap-2">
+                                    <button onClick={()=>setUserPath([])} className="px-4 py-2 bg-red-100 text-red-600 rounded font-bold">重置 (Reset)</button>
+                                    {userPath.length === 4 && (
+                                        <div className={`px-4 py-2 rounded font-bold flex-1 text-center ${JSON.stringify(userPath) === JSON.stringify(correctPath) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            {JSON.stringify(userPath) === JSON.stringify(correctPath) ? '建構成功！正確還原核心論述。' : '順序有誤，請回顧單元1與單元2。'}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {labTab === 2 && (
+                            <div>
+                                <h2 className="text-xl font-bold mb-4"><i className="fas fa-puzzle-piece mr-2 text-bcg-accent"></i>構念情境配對 (Construct Match)</h2>
+                                <p className="mb-6 text-sm text-gray-500">判斷以下情境分別屬於哪一個模型變數？</p>
+                                <div className="space-y-4">
+                                    {scenarios.map((sc, idx) => (
+                                        <div key={idx} className="flex flex-col md:flex-row md:items-center justify-between p-3 border rounded dark:border-gray-600 bg-gray-50 dark:bg-gray-800">
+                                            <div className="font-medium mb-2 md:mb-0">{sc.text}</div>
+                                            <div className="flex gap-2">
+                                                {["X", "Me1", "Me2", "Y"].map(v => (
+                                                    <button key={v} onClick={() => setMatched({...matched, [idx]: v})}
+                                                        className={`px-3 py-1 rounded border text-sm font-bold ${matched[idx] === v ? (matched[idx] === sc.ans ? 'bg-green-500 text-white border-green-500' : 'bg-red-500 text-white border-red-500') : 'bg-white text-gray-600 dark:bg-gray-700 dark:text-gray-200'}`}>
+                                                        {v}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {labTab === 3 && (
+                            <div>
+                                <h2 className="text-xl font-bold mb-4"><i className="fas fa-code-branch mr-2 text-bcg-accent"></i>實證方法決策樹 (Method Decision)</h2>
+                                <p className="mb-6 text-sm text-gray-500">情境：您獲得了一筆連續三年追蹤東亞青年行為的數據，希望能驗證「數位替代」與「社會退縮」之間是單向影響還是『惡性循環(互相影響)』。您應該選擇哪種高階統計模型？</p>
+                                <div className="space-y-3">
+                                    {[
+                                        { name: "一般多元迴歸 (Multiple Regression)", correct: false, msg: "無法處理隨時間變化的雙向因果關係。" },
+                                        { name: "交叉延遲模型 (RI-CLPM)", correct: true, msg: "正確！RI-CLPM 能分離組間差異與組內動態，是驗證迴饋迴路 (Feedback Loop) 的黃金標準。" },
+                                        { name: "多群組分析 (Multi-group SEM)", correct: false, msg: "這是用來驗證調節變數 (Z) 在不同群體間差異的方法，非針對時間迴路。" }
+                                    ].map((opt, i) => (
+                                        <div key={i}>
+                                            <button onClick={()=>setMethodAns(i)} className={`w-full text-left p-3 border rounded font-bold transition ${methodAns === i ? (opt.correct ? 'bg-green-100 border-green-500 dark:bg-green-900/40 text-green-700 dark:text-green-300' : 'bg-red-100 border-red-500 dark:bg-red-900/40 text-red-700 dark:text-red-300') : 'hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-300 dark:border-gray-600'}`}>
+                                                {opt.name}
+                                            </button>
+                                            {methodAns === i && <div className={`text-sm mt-1 ml-2 ${opt.correct ? 'text-green-600' : 'text-red-500'}`}>{opt.msg}</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const AnalyticsPage = ({ t, analytics, userInfo, setUserInfo, handleExport }) => (
+            <div className="max-w-4xl mx-auto py-8 px-4 animate-fade-in">
+                <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">{t.nav[9]}</h1>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    {t.ui.stats.map((lbl, i) => {
+                        const vals = [analytics.timeSpent.reduce((a,b)=>a+b,0), analytics.clicks, analytics.cardsFlipped, analytics.quizCorrect];
+                        return (
+                            <div key={i} className="bg-white dark:bg-bcg-darkcard p-4 rounded-lg shadow text-center border-t-4 border-bcg-navy dark:border-bcg-accent">
+                                <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">{lbl}</div>
+                                <div className="text-3xl font-bold text-bcg-navy dark:text-white">{vals[i]}</div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="bg-white dark:bg-bcg-darkcard p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                    <h2 className="text-xl font-bold mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">資料匯出設定 (Export Data)</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <input type="text" placeholder={t.ui.group + " (例: G1)"} className="p-3 border rounded dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:border-bcg-accent" value={userInfo.group} onChange={e=>setUserInfo({...userInfo, group: e.target.value})}/>
+                        <input type="text" placeholder={t.ui.studentId + " (例: 113212599)"} className="p-3 border rounded dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:border-bcg-accent" value={userInfo.studentId} onChange={e=>setUserInfo({...userInfo, studentId: e.target.value})}/>
+                        <input type="text" placeholder={t.ui.name + " (例: Shihmin Lo)"} className="p-3 border rounded dark:bg-gray-800 dark:border-gray-600 focus:outline-none focus:border-bcg-accent" value={userInfo.name} onChange={e=>setUserInfo({...userInfo, name: e.target.value})}/>
+                    </div>
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <button onClick={handleExport} className="flex-1 bg-bcg-navy text-white py-3 rounded hover:bg-opacity-90 transition font-bold shadow-md"><i className="fas fa-file-csv mr-2"></i>{t.ui.export}</button>
+                        <button onClick={() => {if(confirm('確定刷新所有學習記錄？ / Are you sure to clear records?')) window.location.reload();}} className="px-6 bg-red-600 text-white py-3 rounded hover:bg-red-700 transition font-bold shadow-md"><i className="fas fa-trash-alt mr-2"></i>{t.ui.clear}</button>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // --- 主應用入口 ---
         const App = () => {
             const [lang, setLang] = useState('tw');
             const [isDark, setIsDark] = useState(true);
             const [activeTab, setActiveTab] = useState(0);
             const [menuOpen, setMenuOpen] = useState(false);
-            const [ttsSpeaking, setTtsSpeaking] = useState(false);
             
-            // 學習歷程分析 State
-            const [analytics, setAnalytics] = useState({
-                timeSpent: Array(10).fill(0),
-                clicks: 0,
-                cardsFlipped: 0,
-                quizCorrect: 0
-            });
+            const [analytics, setAnalytics] = useState({ timeSpent: Array(10).fill(0), clicks: 0, cardsFlipped: 0, quizCorrect: 0 });
             const [userInfo, setUserInfo] = useState({ group: '', studentId: '', name: '' });
+
+            // TTS State
+            const [isSpeaking, setIsSpeaking] = useState(false);
+            const speechSynth = window.speechSynthesis;
 
             const t = dict[lang];
 
-            // Toggle Theme
+            // Theme Effect
             useEffect(() => {
                 if (isDark) document.documentElement.classList.add('dark');
                 else document.documentElement.classList.remove('dark');
             }, [isDark]);
 
-            // Timer Tracker
+            // Analytics Timers
             useEffect(() => {
                 const timer = setInterval(() => {
                     setAnalytics(prev => {
@@ -374,57 +718,78 @@
                 return () => clearInterval(timer);
             }, [activeTab]);
 
-            // Global Click Tracker
             useEffect(() => {
                 const handleClick = () => setAnalytics(prev => ({ ...prev, clicks: prev.clicks + 1 }));
                 window.addEventListener('click', handleClick);
                 return () => window.removeEventListener('click', handleClick);
             }, []);
 
-            // TTS Function
-            const speak = (action) => {
-                window.speechSynthesis.cancel();
-                setTtsSpeaking(false);
-                if (action === 'play') {
-                    const utterance = new SpeechSynthesisUtterance();
-                    let textToRead = "";
-                    if (activeTab === 0) textToRead = t.content[0].title + ". " + t.content[0].desc;
-                    else if (activeTab >= 1 && activeTab <= 6) textToRead = t.content[activeTab].title + ". " + t.content[activeTab].desc;
-                    else if (activeTab === 7) textToRead = t.lab.title + ". " + t.lab.simDesc;
-                    else textToRead = t.nav[activeTab];
+            // --- TTS Functionality ---
+            const handleTTSPlay = () => {
+                speechSynth.cancel(); // Stop current
+                let textToRead = "";
 
-                    utterance.text = textToRead;
-                    // Try to set voice based on language
-                    const voices = window.speechSynthesis.getVoices();
-                    if (lang === 'tw') {
-                        utterance.lang = 'zh-TW';
-                        const twVoice = voices.find(v => v.lang.includes('zh-TW') || v.lang.includes('zh-HK'));
-                        if (twVoice) utterance.voice = twVoice;
-                    } else {
-                        utterance.lang = 'en-GB';
-                        const enVoice = voices.find(v => v.lang.includes('en-GB') && v.name.includes('Male'));
-                        if (enVoice) utterance.voice = enVoice;
+                if (activeTab >= 0 && activeTab <= 6) {
+                    const d = t.content[activeTab];
+                    textToRead += `${d.title}. \n\n`;
+                    textToRead += d.highlights.join(". ") + ". \n\n";
+                    textToRead += `${d.desc} \n\n`;
+                    if (d.cards) {
+                        d.cards.forEach(c => { textToRead += `${c.front}. ${c.back}. \n`; });
                     }
-                    
-                    utterance.onend = () => setTtsSpeaking(false);
-                    window.speechSynthesis.speak(utterance);
-                    setTtsSpeaking(true);
-                } else if (action === 'pause') {
-                    window.speechSynthesis.pause();
+                } else if (activeTab === 7) {
+                    textToRead = "Interactive Labs. " + t.ui.labTabs.join(". ") + ". Please select a lab to interact.";
+                } else {
+                    textToRead = t.nav[activeTab];
+                }
+
+                const utterance = new SpeechSynthesisUtterance(textToRead);
+                
+                // Voice matching logic
+                const voices = speechSynth.getVoices();
+                if (lang === 'tw') {
+                    utterance.lang = 'zh-TW';
+                    // Try to find Yating or Taiwan
+                    const twVoice = voices.find(v => v.name.includes('Yating') || v.name.includes('Taiwan')) || voices.find(v => v.lang === 'zh-TW') || voices.find(v => v.lang.includes('zh'));
+                    if (twVoice) utterance.voice = twVoice;
+                } else {
+                    utterance.lang = 'en-GB';
+                    // Try to find UK/British Male
+                    const enVoice = voices.find(v => (v.name.includes('UK') || v.name.includes('British')) && v.name.includes('Male')) || voices.find(v => v.lang === 'en-GB') || voices.find(v => v.lang.includes('en'));
+                    if (enVoice) utterance.voice = enVoice;
+                }
+
+                utterance.onend = () => setIsSpeaking(false);
+                utterance.onerror = () => setIsSpeaking(false);
+
+                speechSynth.speak(utterance);
+                setIsSpeaking(true);
+            };
+
+            const handleTTSPause = () => {
+                if (speechSynth.speaking) {
+                    if (speechSynth.paused) speechSynth.resume();
+                    else speechSynth.pause();
                 }
             };
 
-            // Download CSV
+            const handleTTSStop = () => {
+                speechSynth.cancel();
+                setIsSpeaking(false);
+            };
+            
+            // Stop TTS when tab or language changes
+            useEffect(() => {
+                handleTTSStop();
+            }, [activeTab, lang]);
+
             const handleExport = () => {
                 let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
                 csvContent += "Group,Student ID,Name,Date,Total Clicks,Cards Flipped,Quiz Correct\n";
                 const date = new Date().toISOString().split('T')[0];
                 csvContent += `${userInfo.group},${userInfo.studentId},${userInfo.name},${date},${analytics.clicks},${analytics.cardsFlipped},${analytics.quizCorrect}\n\n`;
-                
                 csvContent += "Module,Time Spent (Seconds)\n";
-                t.nav.forEach((navName, idx) => {
-                    csvContent += `${navName},${analytics.timeSpent[idx]}\n`;
-                });
+                t.nav.forEach((navName, idx) => { csvContent += `${navName},${analytics.timeSpent[idx]}\n`; });
 
                 const encodedUri = encodeURI(csvContent);
                 const link = document.createElement("a");
@@ -435,261 +800,57 @@
                 document.body.removeChild(link);
             };
 
-            // Components
-            const NavMenu = () => (
-                <div className="relative z-50">
-                    <button onClick={() => setMenuOpen(!menuOpen)} className="text-2xl p-2 hover:text-bcg-accent transition">
-                        <i className="fas fa-bars"></i>
-                    </button>
-                    {menuOpen && (
-                        <div className="absolute top-12 left-0 w-64 bg-white dark:bg-bcg-darkcard border border-gray-200 dark:border-gray-700 shadow-xl rounded-md overflow-hidden">
-                            {t.nav.map((item, idx) => (
-                                <button key={idx} 
-                                    onClick={() => { setActiveTab(idx); setMenuOpen(false); window.scrollTo(0,0); }}
-                                    className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition ${activeTab === idx ? 'bg-bcg-gray text-bcg-navy dark:bg-gray-800 dark:text-white font-bold' : ''}`}>
-                                    {item}
+            return (
+                <>
+                    <header className="bg-white dark:bg-bcg-darkcard shadow-md sticky top-0 z-40 h-16 flex items-center justify-between px-4 lg:px-8 border-b border-gray-200 dark:border-gray-800 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <div className="relative z-50">
+                                <button onClick={() => setMenuOpen(!menuOpen)} className="text-2xl p-2 hover:text-bcg-accent transition">
+                                    <i className="fas fa-bars"></i>
                                 </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            );
-
-            // Flip Card Component
-            const FlipCard = ({ card }) => {
-                const [flipped, setFlipped] = useState(false);
-                return (
-                    <div className="relative w-full h-48 perspective-1000 cursor-pointer" 
-                         onClick={() => { setFlipped(!flipped); if(!flipped) setAnalytics(prev => ({...prev, cardsFlipped: prev.cardsFlipped + 1})) }}>
-                        <div className={`w-full h-full absolute transform-style-3d transition-transform-700 ${flipped ? 'rotate-y-180' : ''}`}>
-                            {/* Front */}
-                            <div className="absolute w-full h-full backface-hidden bg-white dark:bg-bcg-darkcard border-t-4 border-bcg-navy dark:border-bcg-accent shadow-md flex items-center justify-center p-4 text-center rounded-b-md">
-                                <h3 className="font-bold text-lg text-bcg-navy dark:text-white">{card.front}</h3>
-                                <div className="absolute bottom-2 text-xs text-gray-400"><i className="fas fa-sync-alt mr-1"></i>{t.ui.flip}</div>
-                            </div>
-                            {/* Back */}
-                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-bcg-navy dark:bg-gray-800 text-white shadow-md flex items-center justify-center p-6 text-center rounded-md">
-                                <p className="text-sm leading-relaxed">{card.back}</p>
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
-            const ContentModule = ({ data, tabIndex }) => {
-                const [cardIdx, setCardIdx] = useState(0);
-                const [quizIdx, setQuizIdx] = useState(0);
-                const [quizAns, setQuizAns] = useState(null);
-
-                return (
-                    <div className="max-w-4xl mx-auto py-8 px-4 animate-fade-in">
-                        <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">{data.title}</h1>
-                        
-                        {/* Highlights */}
-                        <div className="flex flex-wrap gap-2 mb-6">
-                            {data.highlights.map((hl, i) => (
-                                <span key={i} className="bg-bcg-gray dark:bg-gray-800 text-bcg-navy dark:text-bcg-accent px-3 py-1 text-sm font-semibold rounded-full border border-gray-200 dark:border-gray-700">
-                                    <i className="fas fa-check-circle mr-2"></i>{hl}
-                                </span>
-                            ))}
-                        </div>
-
-                        {/* Description */}
-                        <div className="prose dark:prose-invert max-w-none mb-10 text-lg leading-loose whitespace-pre-line">
-                            {data.desc}
-                        </div>
-
-                        {/* Image Placeholder */}
-                        <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-10 border border-dashed border-gray-400">
-                            <span className="text-gray-500 dark:text-gray-400"><i className="far fa-image mr-2"></i></span>
-                        </div>
-
-                        {/* Flip Cards Section */}
-                        {data.cards && (
-                            <div className="mb-12 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-lg">
-                                <h2 className="text-xl font-bold mb-4 flex items-center"><i className="fas fa-clone mr-2 text-bcg-accent"></i> Key Concepts ({cardIdx/2 + 1}/{(data.cards.length/2)})</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                                    <FlipCard card={data.cards[cardIdx]} />
-                                    {data.cards[cardIdx+1] && <FlipCard card={data.cards[cardIdx+1]} />}
-                                </div>
-                                <div className="flex justify-end gap-2">
-                                    <button onClick={() => setCardIdx(0)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm">{t.ui.retryCard}</button>
-                                    {(cardIdx + 2) < data.cards.length && (
-                                        <button onClick={() => setCardIdx(cardIdx + 2)} className="px-4 py-2 bg-bcg-navy text-white rounded hover:bg-opacity-90 transition text-sm">{t.ui.nextCard}</button>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Quiz Section */}
-                        {data.quiz && (
-                            <div className="mb-8 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
-                                <h2 className="text-xl font-bold mb-4 flex items-center"><i className="fas fa-tasks mr-2 text-bcg-accent"></i> Knowledge Check</h2>
-                                <div className="mb-4">
-                                    <p className="font-semibold mb-3">{data.quiz[quizIdx].q}</p>
-                                    <div className="space-y-2">
-                                        {data.quiz[quizIdx].options.map((opt, i) => (
-                                            <button key={i} 
-                                                onClick={() => {
-                                                    setQuizAns(i);
-                                                    if(i === data.quiz[quizIdx].ans) setAnalytics(prev => ({...prev, quizCorrect: prev.quizCorrect + 1}));
-                                                }}
-                                                disabled={quizAns !== null}
-                                                className={`w-full text-left p-3 rounded border transition ${
-                                                    quizAns === null ? 'border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800' :
-                                                    i === data.quiz[quizIdx].ans ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
-                                                    quizAns === i ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'opacity-50'
-                                                }`}>
-                                                {opt}
+                                {menuOpen && (
+                                    <div className="absolute top-12 left-0 w-72 bg-white dark:bg-bcg-darkcard border border-gray-200 dark:border-gray-700 shadow-2xl rounded-md overflow-hidden">
+                                        {t.nav.map((item, idx) => (
+                                            <button key={idx} 
+                                                onClick={() => { setActiveTab(idx); setMenuOpen(false); window.scrollTo({top:0, behavior:'smooth'}); }}
+                                                className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-sm ${activeTab === idx ? 'bg-bcg-gray text-bcg-navy dark:bg-gray-900 dark:text-bcg-accent font-bold border-l-4 border-l-bcg-accent' : ''}`}>
+                                                {item}
                                             </button>
                                         ))}
                                     </div>
-                                    {quizAns !== null && (
-                                        <div className={`mt-4 p-3 rounded font-bold ${quizAns === data.quiz[quizIdx].ans ? 'text-green-600' : 'text-red-500'}`}>
-                                            {quizAns === data.quiz[quizIdx].ans ? t.ui.correct : t.ui.wrong}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="flex justify-end gap-2 mt-4">
-                                    <button onClick={() => {setQuizIdx(0); setQuizAns(null);}} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm">{t.ui.retryQuiz}</button>
-                                    {(quizIdx + 1) < data.quiz.length && (
-                                        <button onClick={() => {setQuizIdx(quizIdx + 1); setQuizAns(null);}} className="px-4 py-2 bg-bcg-navy text-white rounded hover:bg-opacity-90 transition text-sm">{t.ui.nextQuiz}</button>
-                                    )}
-                                </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                );
-            };
-
-            const InteractiveLab = () => {
-                const [xVal, setXVal] = useState(50);
-                const [zVal, setZVal] = useState(50);
-                const [simResult, setSimResult] = useState(null);
-
-                const runSim = () => {
-                    const x = xVal / 100; const z = zVal / 100;
-                    // Mock calculation based on conceptual model
-                    const me1 = Math.min(100, Math.round((x * 0.6 + z * x * 0.4) * 100));
-                    const me2 = Math.min(100, Math.round((me1 * 0.5 + z * me1 * 0.5) * 100));
-                    const y = Math.min(100, Math.round((me2 * 0.7 + z * 0.3) * 100));
-                    setSimResult({ me1, me2, y });
-                };
-
-                return (
-                    <div className="max-w-4xl mx-auto py-8 px-4">
-                        <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">{t.lab.title}</h1>
-                        <p className="mb-8 text-lg">{t.lab.simDesc}</p>
-                        
-                        <div className="bg-white dark:bg-bcg-darkcard p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                            <h2 className="text-xl font-bold mb-6"><i className="fas fa-sliders-h mr-2 text-bcg-accent"></i>{t.lab.simTitle}</h2>
-                            
-                            <div className="mb-6">
-                                <label className="block mb-2 font-semibold">{t.lab.xLabel}: {xVal}%</label>
-                                <input type="range" min="0" max="100" value={xVal} onChange={e => setXVal(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"/>
-                            </div>
-                            
-                            <div className="mb-8">
-                                <label className="block mb-2 font-semibold">{t.lab.zLabel}: {zVal}%</label>
-                                <input type="range" min="0" max="100" value={zVal} onChange={e => setZVal(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"/>
-                            </div>
-
-                            <button onClick={runSim} className="w-full py-3 bg-bcg-green text-white font-bold rounded hover:bg-opacity-90 transition">
-                                {t.lab.btnSimulate}
-                            </button>
-
-                            {simResult && (
-                                <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-600">
-                                    <h3 className="font-bold text-lg mb-4 text-center">{t.lab.resultTitle}</h3>
-                                    <div className="space-y-4">
-                                        <div>
-                                            <div className="flex justify-between mb-1 text-sm font-semibold"><span>{t.lab.resMe1}</span><span>{simResult.me1}%</span></div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700"><div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${simResult.me1}%`}}></div></div>
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-1 text-sm font-semibold"><span>{t.lab.resMe2}</span><span>{simResult.me2}%</span></div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700"><div className="bg-purple-600 h-2.5 rounded-full" style={{width: `${simResult.me2}%`}}></div></div>
-                                        </div>
-                                        <div>
-                                            <div className="flex justify-between mb-1 text-sm font-semibold"><span>{t.lab.resY}</span><span>{simResult.y}%</span></div>
-                                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700"><div className="bg-red-600 h-2.5 rounded-full" style={{width: `${simResult.y}%`}}></div></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-            };
-
-            const AnalyticsPage = () => (
-                <div className="max-w-4xl mx-auto py-8 px-4">
-                    <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">{t.nav[9]}</h1>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        {t.ui.stats.map((lbl, i) => {
-                            const vals = [analytics.timeSpent.reduce((a,b)=>a+b,0), analytics.clicks, analytics.cardsFlipped, analytics.quizCorrect];
-                            return (
-                                <div key={i} className="bg-white dark:bg-bcg-darkcard p-4 rounded-lg shadow text-center border-t-4 border-bcg-navy dark:border-bcg-accent">
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">{lbl}</div>
-                                    <div className="text-2xl font-bold text-bcg-navy dark:text-white">{vals[i]}</div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="bg-white dark:bg-bcg-darkcard p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                        <h2 className="text-xl font-bold mb-4">Export Settings</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <input type="text" placeholder={t.ui.group + " (e.g., G1)"} className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600" value={userInfo.group} onChange={e=>setUserInfo({...userInfo, group: e.target.value})}/>
-                            <input type="text" placeholder={t.ui.studentId + " (e.g., 113212599)"} className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600" value={userInfo.studentId} onChange={e=>setUserInfo({...userInfo, studentId: e.target.value})}/>
-                            <input type="text" placeholder={t.ui.name + " (e.g., Shihmin Lo)"} className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600" value={userInfo.name} onChange={e=>setUserInfo({...userInfo, name: e.target.value})}/>
-                        </div>
-                        <div className="flex gap-4">
-                            <button onClick={handleExport} className="flex-1 bg-bcg-navy text-white py-2 rounded hover:bg-opacity-90 transition font-bold"><i className="fas fa-download mr-2"></i>{t.ui.export}</button>
-                            <button onClick={() => window.location.reload()} className="px-6 bg-red-600 text-white py-2 rounded hover:bg-red-700 transition"><i className="fas fa-trash-alt mr-2"></i>{t.ui.clear}</button>
-                        </div>
-                    </div>
-                </div>
-            );
-
-            // Main Render Logic
-            const renderContent = () => {
-                if (activeTab >= 0 && activeTab <= 6) return <ContentModule data={t.content[activeTab]} tabIndex={activeTab} />;
-                if (activeTab === 7) return <InteractiveLab />;
-                if (activeTab === 8) return <div className="max-w-4xl mx-auto py-8 text-center text-xl mt-20">{t.nav[8]} - Content Pending</div>;
-                if (activeTab === 9) return <AnalyticsPage />;
-            };
-
-            return (
-                <>
-                    {/* Header */}
-                    <header className="bg-white dark:bg-bcg-darkcard shadow-md sticky top-0 z-40 h-16 flex items-center justify-between px-4 lg:px-8 border-b border-gray-200 dark:border-gray-800 transition-colors">
-                        <div className="flex items-center gap-4">
-                            <NavMenu />
-                            <h1 className="font-bold text-lg md:text-xl text-bcg-navy dark:text-white cursor-pointer truncate" onClick={() => window.scrollTo(0,0)}>
+                            <h1 className="font-bold text-lg md:text-xl text-bcg-navy dark:text-white cursor-pointer truncate hidden sm:block" onClick={() => window.scrollTo({top:0, behavior:'smooth'})}>
                                 <i className="fas fa-project-diagram mr-2 text-bcg-accent"></i>{t.brand}
                             </h1>
                         </div>
-                        <div className="flex items-center gap-3 md:gap-6 text-sm">
-                            <div className="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
-                                <button onClick={() => speak('play')} className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-600 flex items-center justify-center transition" title={t.ui.play}><i className="fas fa-play text-green-600 dark:text-green-400"></i></button>
-                                <button onClick={() => speak('pause')} className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-600 flex items-center justify-center transition" title={t.ui.pause}><i className="fas fa-pause text-yellow-600 dark:text-yellow-400"></i></button>
-                                <button onClick={() => speak('stop')} className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-600 flex items-center justify-center transition" title={t.ui.stop}><i className="fas fa-stop text-red-600 dark:text-red-400"></i></button>
+                        <div className="flex items-center gap-2 md:gap-4 text-sm">
+                            {/* TTS Controls */}
+                            <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-full border border-gray-200 dark:border-gray-700">
+                                <button onClick={handleTTSPlay} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${isSpeaking ? 'bg-green-100 dark:bg-green-900 text-green-600' : 'hover:bg-white dark:hover:bg-gray-600 text-green-600 dark:text-green-400'}`} title={t.ui.play}><i className="fas fa-play"></i></button>
+                                <button onClick={handleTTSPause} className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-600 flex items-center justify-center transition text-yellow-600 dark:text-yellow-400" title={t.ui.pause}><i className="fas fa-pause"></i></button>
+                                <button onClick={handleTTSStop} className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-600 flex items-center justify-center transition text-red-600 dark:text-red-400" title={t.ui.stop}><i className="fas fa-stop"></i></button>
                             </div>
-                            <button onClick={() => setLang(lang === 'tw' ? 'en' : 'tw')} className="font-bold px-3 py-1 bg-bcg-navy text-white rounded hover:bg-opacity-80 transition">{t.ui.lang}</button>
-                            <button onClick={() => setIsDark(!isDark)} className="text-xl" title={isDark ? t.ui.themeDark : t.ui.themeLight}>
+
+                            {/* Language Toggle */}
+                            <button onClick={() => setLang(lang === 'tw' ? 'en' : 'tw')} className="font-bold px-3 py-1.5 bg-bcg-navy text-white rounded hover:bg-opacity-80 transition shadow-sm border border-transparent">
+                                {lang === 'tw' ? 'EN' : 'TW'}
+                            </button>
+
+                            {/* Theme Toggle */}
+                            <button onClick={() => setIsDark(!isDark)} className="text-xl hover:scale-110 transition ml-2" title={isDark ? t.ui.themeDark : t.ui.themeLight}>
                                 {isDark ? <i className="fas fa-sun text-yellow-400"></i> : <i className="fas fa-moon text-gray-600"></i>}
                             </button>
                         </div>
                     </header>
 
-                    {/* Main Content Area */}
                     <main className="flex-grow pb-24">
-                        {renderContent()}
+                        {activeTab >= 0 && activeTab <= 6 && <ContentModule data={t.content[activeTab]} tabIndex={activeTab} t={t} setAnalytics={setAnalytics} isDark={isDark} />}
+                        {activeTab === 7 && <InteractiveLabsContainer t={t} />}
+                        {activeTab === 8 && <div className="max-w-4xl mx-auto py-20 text-center text-xl text-gray-500 font-bold"><i className="fas fa-link mr-2"></i>外部學習資源 (建置中) / External Resources</div>}
+                        {activeTab === 9 && <AnalyticsPage t={t} analytics={analytics} userInfo={userInfo} setUserInfo={setUserInfo} handleExport={handleExport} />}
                         
-                        {/* Pagination Buttons */}
-                        <div className="max-w-4xl mx-auto px-4 flex justify-between mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <div className="max-w-4xl mx-auto px-4 flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
                             <button onClick={() => { if(activeTab > 0) { setActiveTab(activeTab - 1); window.scrollTo(0,0); } }} 
                                     className={`px-4 py-2 flex items-center ${activeTab === 0 ? 'invisible' : 'text-bcg-navy dark:text-bcg-accent hover:underline font-bold'}`}>
                                 <i className="fas fa-chevron-left mr-2"></i> {t.ui.prev}
@@ -701,12 +862,11 @@
                         </div>
                     </main>
 
-                    {/* Footer */}
-                    <footer className="bg-white dark:bg-bcg-darkcard border-t border-gray-200 dark:border-gray-800 h-8 flex items-center justify-between px-4 lg:px-8 text-xs text-gray-500 dark:text-gray-400 fixed bottom-0 w-full z-40">
-                        <div>Version 2026.04 | &copy; 2026 All Rights Reserved.</div>
+                    <footer className="bg-white dark:bg-bcg-darkcard border-t border-gray-200 dark:border-gray-800 h-10 flex items-center justify-between px-4 lg:px-8 text-xs text-gray-500 dark:text-gray-400 fixed bottom-0 w-full z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
+                        <div>Ver 2026.04 | &copy; 2026 All Rights Reserved.</div>
                         <div className="flex items-center gap-4">
                             <span>Architect: <a href="https://www.ibs.ncnu.edu.tw/index.php/faculty/tenured-professor/299-smlo" target="_blank" className="text-bcg-navy dark:text-bcg-accent hover:underline font-bold">Prof. Shihmin Lo</a></span>
-                            <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-bcg-navy dark:hover:text-white transition"><i className="fas fa-arrow-up mr-1"></i>Top</button>
+                            <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-bcg-navy dark:hover:text-white transition font-bold"><i className="fas fa-arrow-up mr-1"></i>Top</button>
                         </div>
                     </footer>
                 </>
