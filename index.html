@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Model SPA | Prof. Shihmin Lo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        // --- 前端基本防禦 (Security Blockers) ---
+        // 1. 阻擋右鍵選單
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        // 2. 阻擋開發者工具快捷鍵 (F12, Ctrl+Shift+I, Ctrl+U, etc.)
+        document.onkeydown = function(e) {
+            if (e.keyCode == 123) return false; // F12
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false; // Ctrl+Shift+I
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false; // Ctrl+Shift+C
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false; // Ctrl+Shift+J
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false; // Ctrl+U
+            if (e.ctrlKey && e.keyCode == 'S'.charCodeAt(0)) return false; // Ctrl+S
+            if (e.ctrlKey && e.keyCode == 'P'.charCodeAt(0)) return false; // Ctrl+P
+        };
+        // 3. 網域白名單綁定 (Domain Lock - 示範邏輯，本機預覽會略過)
+        /*
+        const allowedDomains = ['localhost', '127.0.0.1', 'www.ibs.ncnu.edu.tw'];
+        const currentDomain = window.location.hostname;
+        if (!allowedDomains.includes(currentDomain) && currentDomain !== "") {
+            window.location.href = "https://www.ibs.ncnu.edu.tw/index.php/faculty/tenured-professor/299-smlo";
+        }
+        */
+
+        // Tailwind Config for BCG Style
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bcg: {
+                            navy: '#0A3254',
+                            green: '#007A53',
+                            gray: '#F3F4F6',
+                            darkbg: '#111827',
+                            darkcard: '#1F2937',
+                            accent: '#C5A97A' // Gold accent
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 禁用文字選取與拖曳 */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        img { pointer-events: none; }
+        
+        /* 翻轉卡片動畫 */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .transition-transform-700 { transition: transform 0.7s ease-in-out; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-bcg-darkbg text-gray-900 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-300">
+    <div id="root" class="flex-grow flex flex-col h-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 字典資料 (雙語內容) ---
+        const dict = {
+            tw: {
+                brand: "理論前導：數位替代與不性婚育模型",
+                nav: ["0. 課程概要", "1. 科技普及與人際替代 (X→Me1)", "2. 責任移轉與社會退縮 (Me2)", "3. 數位依賴惡性迴路 (Me1↺Me2)", "4. 不性婚育的終局效應 (Y)", "5. 結構性催化劑 (Z)", "6. 實證研究設計", "7. 互動實驗室", "8. 外部學習資源", "9. 學習歷程分析"],
+                ui: {
+                    play: "播放導覽", pause: "暫停", stop: "停止",
+                    lang: "EN", themeDark: "淺色模式", themeLight: "深色模式",
+                    top: "回到頂端", prev: "上一單元", next: "下一單元",
+                    flip: "翻轉背頁", nextCard: "下一組卡片", retryCard: "重新複習卡片",
+                    nextQuiz: "下一組測驗", retryQuiz: "重新測驗", submit: "提交",
+                    correct: "答對了！展現了極佳的概念掌握度。", wrong: "需再釐清，請回顧理論邊界與定義。",
+                    export: "匯出學習歷程 (CSV)", clear: "刷新記錄",
+                    group: "組別", studentId: "學號", name: "姓名",
+                    stats: ["停留時間(秒)", "點擊次數", "卡片翻轉次數", "測驗答對題數"]
+                },
+                content: [
+                    {   // 0
+                        title: "課程概要 (Course Overview)",
+                        desc: "本互動學習模組旨在解構「科技普及(X)」如何透過「數位替代(Me1)」與「獨來獨往傾向(Me2)」，最終導致「不性婚育(Y)」的總體人口現象。本提案具備強烈的理論整合企圖心，將宏觀的人口崩塌現象，連結至微觀的心理行為機制。學習者將透過本系統，逐步釐清構念邊界（Construct Boundaries），探討從娛樂互動、情感支持到親密關係的全面替代過程。此外，我們將檢視「責任移轉」這一核心創新概念，了解個體如何將不進入關係的狀態進行認知合理化。本模組亦涵蓋結構強化變數（如經濟壓力、性別結構）的調節作用，並探討如何透過 SEM 等高階量化技術進行實證檢驗。請點擊下方單元開始探索。",
+                        highlights: ["建立具備因果邏輯的概念模型", "區分變數的分析層次 (Analysis Levels)", "嚴謹化操作型定義免於病理化偏誤"]
+                    },
+                    {   // 1
+                        title: "1. 科技普及與人際替代 (X → Me1)",
+                        desc: "首先，我們必須釐清「科技普及(X)」與「問題性使用」的邊界。X 在此定義為數位載具與寬頻網路的可近性與媒介暴露度，而非成癮行為。當科技無縫融入生活，它開始提供強大的「替代功能(Me1)」。\n\n這種替代並非單一維度，而是階層性的：從最淺層的『娛樂互動替代』（如社群媒體消遣）、中層的『情感支持替代』（如虛擬社群的同溫層效應），一路深探至最深層的『親密關係替代』（如虛擬戀人、沉浸式色情消費）。\n\n當數位環境能以極低的邊際成本，提供高效率、免除現實摩擦的關係報償時，真實世界的人際互動動機便開始受到侵蝕。",
+                        highlights: ["科技普及 ≠ 科技成癮", "三層次替代：娛樂、情感、親密", "低邊際成本的關係報償"],
+                        cards: [
+                            { front: "科技普及 (Technology Popularization)", back: "指基礎設施可近性、平台使用普及度，需與『數位成癮』等病理化概念嚴格區分。" },
+                            { front: "數位替代功能 (Digital Substitution)", back: "透過數位媒介獲取原先需透過實體人際互動才能獲得的心理與生理滿足感。" },
+                            { front: "娛樂互動替代", back: "利用社群媒體、遊戲等消弭無聊，減少對實體社交活動的需求。" },
+                            { front: "親密關係替代", back: "透過虛擬伴侶、成人內容等，以極低成本滿足性與親密感需求，減少真實摩擦。" }
+                        ],
+                        quiz: [
+                            { q: "在研究模型中，為何需要嚴格區分『科技普及』與『科技成癮』？", options: ["為了增加問卷長度", "成癮是病理結果，普及是環境前因，混淆會導致因果推論錯誤", "兩者在統計上呈完全負相關", "為了符合質性研究的標準"], ans: 1 },
+                            { q: "下列何者屬於『親密關係替代』的範疇？", options: ["使用 Google Map 導航", "在線上遊戲中與隊友語音討論戰術", "高度依賴 AI 虛擬伴侶提供情緒與浪漫滿足", "使用線上點餐系統減少與店員對話"], ans: 2 }
+                        ]
+                    },
+                    {   // 2
+                        title: "2. 責任移轉與社會退縮 (Me2)",
+                        desc: "本模型的理論創新亮點，在於將「獨來獨往傾向(Me2)」深化至認知與行為雙層面。傳統文獻多聚焦於『社會退縮(Social Withdrawal)』或『性慾行為抑制』等能力或情緒缺陷，但本模型引入了『責任移轉(Responsibility Transfer)』機制。\n\n責任移轉意指：個體不僅是「無法」進入關係，更是透過認知合理化，主動「拒絕」承擔傳統親密關係中的情緒勞動與社會角色。他們將親密關係視為高風險、低投報的負擔。\n\n在測量上，我們需謹慎處理這組變數。它們可能是一組平行中介變數 (Correlated Mediators)，而非單一的潛在變數 (Latent Construct)。",
+                        highlights: ["核心創新：責任移轉機制", "從『無法進入』到『主動退出』的認知合理化", "潛在變數與平行中介的測量考量"],
+                        cards: [
+                            { front: "獨來獨往傾向 (Solitary Tendency)", back: "不僅是行為上的孤立，更包含對關係責任的排斥與認知上的合理化。" },
+                            { front: "社會退縮 (Social Withdrawal)", back: "逐漸減少實體社會參與，偏好留於可控的私人或數位空間中。" },
+                            { front: "責任移轉 (Responsibility Transfer)", back: "將維持傳統婚戀關係視為不合理的情緒與經濟負擔，進而合理化退出行為。" },
+                            { front: "平行中介 (Correlated Mediators)", back: "統計考量：退縮、抑制與移轉可能各自對結果產生影響，而非必然構成單一潛在變數。" }
+                        ],
+                        quiz: [
+                            { q: "『責任移轉』在本模型中扮演何種獨特角色？", options: ["解釋年輕人為何變得更富有", "將不進入關係從『能力問題』推進為『認知合理化與主動退出』", "證明傳統婚姻制度的優越性", "強調政府應提供更多生育補助"], ans: 1 },
+                            { q: "針對 Me2 的測量，研究設計上面臨的主要挑戰為何？", options: ["無法翻譯成英文", "受試者可能因社會期許而拒答", "這些面向未必形成單一潛在變數，可能需視為平行中介", "問卷紙張成本過高"], ans: 2 }
+                        ]
+                    },
+                    {   // 3
+                        title: "3. 數位依賴的惡性迴路 (Me1 ↺ Me2)",
+                        desc: "人類行為並非單向的線性發展。本模型提出了一個動態的「回饋迴路 (Feedback Loop)」：當個體發展出 Me2（獨來獨往、減少真實互動）後，為了填補必然產生的人際空缺，會進一步提升對 Me1（數位替代功能）的依賴。\n\n這種自我強化的惡性循環（Me2 ↺ Me1）導致個體更深地陷入數位封閉系統中。真實互動的肌肉逐漸萎縮，面對實體關係摩擦的容忍度降至冰點。\n\n實證上，要捕捉此一動態過程，橫斷面資料 (Cross-sectional data) 是不夠的，必須仰賴縱貫性研究 (Longitudinal design) 或密集追蹤設計 (EMA)，方能確認變數間的時間序與因果循環。",
+                        highlights: ["非線性動態發展", "減少真實互動反而推升數位依賴", "需採用縱貫性研究設計"],
+                        cards: [
+                            { front: "回饋迴路 (Feedback Loop)", back: "系統中輸出的結果反過來成為下一輪輸入的過程，此處指孤立行為加深數位依賴。" },
+                            { front: "容忍度下降", back: "長期依賴可控的數位互動後，個體對實體人際摩擦與不可控性的忍受力降低。" },
+                            { front: "縱貫性研究 (Longitudinal Study)", back: "在不同時間點對同一群樣本進行重複測量，以確立因果時序與動態變化。" },
+                            { front: "橫斷面限制", back: "單一時間點的調查無法證明 Me1 與 Me2 之間是誰先誰後的循環關係。" }
+                        ],
+                        quiz: [
+                            { q: "模型中的 Me1 ↺ Me2 迴路說明了什麼現象？", options: ["科技使用會直接導致生育率上升", "社會退縮後，對數位替代的依賴會進一步加深，形成惡性循環", "年輕人喜歡購買最新款手機", "虛擬實境技術已完全取代現實"], ans: 1 },
+                            { q: "要驗證這種動態迴路，哪種研究設計最適當？", options: ["一次性的橫斷面問卷調查", "單一個案訪談", "縱貫性追蹤研究設計", "文本分析法"], ans: 2 }
+                        ]
+                    },
+                    {   // 4
+                        title: "4. 不性婚育的終局效應 (Y)",
+                        desc: "將「不性婚育」視為單一結果變項 (Y) 在理論上極具張力，但在實證操作上存在「異質性過高」的風險。因為戀愛、性行為、結婚、生育所牽涉的時間尺度與成本結構截然不同。\n\n為求嚴謹，本計畫建議將 Y 解構為階段性的光譜：Y1 (戀愛/交往參與下降，可短期觀察) → Y2 (性行為頻率降低，行為層面) → Y3 (婚育意圖/規劃瓦解，牽涉長期制度與資源配置)。\n\n此外，我們必須謹慎處理「分析層次 (Levels of Analysis)」跨越的學術風險：從個體心理機制 (微觀) 推論至國家人口崩塌 (宏觀)，必須論述這是一個『具說服力的機制 (plausible mechanism)』，而非草率的直接等號。",
+                        highlights: ["結果變項解構：Y1, Y2, Y3", "戀愛、性、婚育的成本與時間尺度差異", "警惕分析層次謬誤 (Ecological Fallacy)"],
+                        cards: [
+                            { front: "不性婚育異質性", back: "戀愛屬短期互動，生育涉長期資源投入，兩者受科技影響的機制與速度不同。" },
+                            { front: "階段性結果 (Stage Outcomes)", back: "將龐大的 Y 拆解為 Y1(交往) -> Y2(性行為) -> Y3(婚育意圖)，便於分段實證驗證。" },
+                            { front: "分析層次跨越", back: "將微觀(個人心理)研究結果直接推論至宏觀(國家人口)現象，需有嚴謹的過渡論述。" },
+                            { front: "Plausible Mechanism", back: "在具備實證大數據前，先證成個體行為機制足以『合理推導』出總體趨勢。" }
+                        ],
+                        quiz: [
+                            { q: "為何建議將 Y 變項拆解為交往、性行為、婚育意圖？", options: ["為了讓圖表更複雜", "因為這三者的時間尺度、制度約束與成本結構不同，打包處理會導致異質性過高", "因為這是指導教授的個人偏好", "為了申請更多研究經費"], ans: 1 },
+                            { q: "用個人沈迷社群媒體的數據，直接斷言國家將因此面臨人口滅絕，犯了什麼潛在的學術風險？", options: ["抽樣誤差", "測量無效", "分析層次跨越推論的風險", "統計檢定力不足"], ans: 2 }
+                        ]
+                    },
+                    {   // 5
+                        title: "5. 結構性催化劑 (Z)",
+                        desc: "科技普及與數位替代並非發生在真空之中，社會結構因素扮演著強大的調節變數 (Moderator, Z)。本模型納入「經濟壓力」與「性別結構」兩大維度。\n\n1) Z × (X → Me1)：在高經濟壓力下，低成本的數位替代是否更具吸引力？\n2) Z × (Me1 → Me2)：僵化的性別角色期待，是否讓尋求數位替代的個體，更傾向徹底退出真實關係（避免達不到社會期許）？\n3) Z × (Me2 → Y)：經濟高壓是否加劇了「責任移轉」，讓退出傾向不可逆地轉為終身的不性婚育？這些結構因素是催化科技毒性的關鍵溫床。",
+                        highlights: ["經濟壓力作為加速器", "僵化性別期待的排斥效應", "調節變數在三階段路徑的作用"],
+                        cards: [
+                            { front: "調節變數 (Moderator)", back: "改變自變數(X)與依變數(Y)之間關係強度或方向的第三變數。" },
+                            { front: "經濟壓力催化", back: "低薪高房價使實體戀愛成為奢侈品，低成本的虛擬互動吸引力隨之放大。" },
+                            { front: "性別結構效應", back: "男主外女主內等傳統期待，使無法達標的青年選擇徹底退出(躺平)以逃避壓力。" },
+                            { front: "三段調節檢驗", back: "評估 Z 在模型前段、中段與後段，何處發揮最強的催化/干擾效果。" }
+                        ],
+                        quiz: [
+                            { q: "在研究模型中，『經濟壓力』扮演什麼角色？", options: ["自變數 (X)", "中介變數 (Mediator)", "調節變數 (Moderator, Z)", "控制變數"], ans: 2 },
+                            { q: "『僵化的性別角色期待』如何影響模型的運作？", options: ["促進真實世界的生育率", "可能讓年輕人因為達不到社會期許，而加速從實體關係中退縮 (Me2)", "減少對數位裝置的依賴", "提升兩性薪資平權"], ans: 1 }
+                        ]
+                    },
+                    {   // 6
+                        title: "6. 實證研究設計",
+                        desc: "將強勢的概念框架轉化為實證計畫，策略上建議採用「東亞青年為對象的理論整合型前導研究，後續分階段進行縱貫實證」。\n\n首先，建立乾淨的核心模型：檢驗「科技普及 → 社會退縮 → 戀愛參與下降」，確保基礎路徑成立。其次，採用多群組分析 (Multi-group Analysis) 或交叉延遲模型 (RI-CLPM) 處理複雜的共線性與迴路問題。測量工具需精挑細選，避免過度依賴單一量表，結合 BSMAS、HQ-25 等，並加入蒙地卡羅模擬 (Monte Carlo simulation) 驗證統計考驗力。\n\n語氣控制上，提案需從「絕對的人口災難」收斂至「待驗證的行為機制假設」，以提升學術耐受度與可反駁性。",
+                        highlights: ["分階段實證策略", "RI-CLPM 等高階計量方法", "語氣控制與假設中立化"],
+                        cards: [
+                            { front: "分階段實證", back: "避免一次檢驗過度龐大的模型，先確立基礎因果鏈，再加入調節與迴路。" },
+                            { front: "RI-CLPM", back: "隨機截距交叉延遲模型，用於縱貫資料，能有效分離組間差異與組內動態變化。" },
+                            { front: "多群組分析 (Multi-group)", back: "在 SEM 中比較不同特徵群體（如高/低經濟壓力組）的模型路徑係數差異。" },
+                            { front: "語氣收斂", back: "學術提案應保持可反駁性，將『已證實的災難』改為『有待檢驗的機制假設』。" }
+                        ],
+                        quiz: [
+                            { q: "為了讓計畫書更容易通過學術審查，專家建議的研究策略是什麼？", options: ["一次性檢驗所有變數，不留後路", "直接使用『人口崩潰的終極災難』作為標題", "採用東亞青年為對象，分階段進行模型驗證", "放棄量化研究，改為純文學批判"], ans: 2 },
+                            { q: "下列哪一種語氣最適合出現在嚴謹的研究計畫書中？", options: ["本研究已徹底證明科技是毀滅人類繁衍的毒藥", "本模型預期科技普及將透過特定機制影響青年婚育意圖，有待實證檢驗", "毫無疑問，不性婚育完全是智慧型手機造成的", "只要拔掉網路線，生育率明天就會回升"], ans: 1 }
+                        ]
+                    }
+                ],
+                lab: {
+                    title: "7. 互動實驗室 (Interactive Lab)",
+                    simTitle: "系統動力模擬：參數調節與模型預測",
+                    simDesc: "透過調整下方「科技暴露度」與「經濟壓力」參數，觀察其對「數位依賴(Me1)」、「退縮傾向(Me2)」及最終「不婚育機率(Y)」的理論影響。",
+                    xLabel: "科技暴露度 (Tech Exposure)",
+                    zLabel: "經濟與結構壓力 (Economic/Structural Pressure)",
+                    btnSimulate: "執行模型運算",
+                    resultTitle: "理論預測結果矩陣",
+                    resMe1: "數位替代依賴度", resMe2: "責任移轉/退縮指數", resY: "不性婚育終局機率"
+                }
+            },
+            en: {
+                brand: "Conceptual Model: Digital Substitution & Asexual/Childless Trends",
+                nav: ["0. Course Overview", "1. Tech & Substitution (X→Me1)", "2. Responsibility Transfer (Me2)", "3. Vicious Cycle (Me1↺Me2)", "4. Endgame Effect (Y)", "5. Structural Catalysts (Z)", "6. Empirical Design", "7. Interactive Lab", "8. External Resources", "9. Learning Analytics"],
+                ui: {
+                    play: "Play Guide", pause: "Pause", stop: "Stop",
+                    lang: "TW", themeDark: "Light Mode", themeLight: "Dark Mode",
+                    top: "Back to Top", prev: "Previous", next: "Next",
+                    flip: "Flip Card", nextCard: "Next Cards", retryCard: "Retry Cards",
+                    nextQuiz: "Next Quiz", retryQuiz: "Retry Quiz", submit: "Submit",
+                    correct: "Correct! Excellent grasp of the concept.", wrong: "Review needed. Check construct boundaries.",
+                    export: "Export Analytics (CSV)", clear: "Clear Records",
+                    group: "Group", studentId: "Student ID", name: "Name",
+                    stats: ["Time Spent(s)", "Clicks", "Cards Flipped", "Quiz Correct"]
+                },
+                content: [
+                    {
+                        title: "Course Overview",
+                        desc: "This interactive module deconstructs how 'Technology Popularization (X)' via 'Digital Substitution (Me1)' and 'Solitary Tendency (Me2)' leads to the macro-demographic phenomenon of 'Asexual/Aromantic/Childless trends (Y)'. This proposal demonstrates strong theoretical integration, linking macro demographic collapse to micro psychological mechanisms. Learners will clarify construct boundaries, exploring substitution from entertainment to intimacy. We examine 'Responsibility Transfer', exploring how individuals cognitively rationalize not entering relationships. The module also covers the moderating effects of structural variables (economic pressure, gender structure) and empirical validation via advanced quantitative techniques like SEM. Click below to start.",
+                        highlights: ["Causal conceptual modeling", "Differentiating levels of analysis", "Rigorous operational definitions avoiding pathologization"]
+                    },
+                    {
+                        title: "1. Technology Popularization & Substitution (X → Me1)",
+                        desc: "First, we must clarify the boundary between 'Technology Popularization (X)' and 'problematic use'. X is defined here as accessibility and media exposure, not addiction. When tech seamlessly integrates into life, it provides powerful 'substitution functions (Me1)'.\n\nThis substitution is hierarchical: from shallow 'entertainment substitution' (social media), mid-level 'emotional support substitution' (echo chambers), down to deep 'intimacy substitution' (virtual partners, immersive porn).\n\nWhen the digital environment offers high-efficiency, friction-free relationship rewards at minimal marginal cost, the motivation for real-world interaction erodes.",
+                        highlights: ["Tech Popularization ≠ Tech Addiction", "Three levels: Entertainment, Emotion, Intimacy", "Low-cost relationship rewards"],
+                        cards: [
+                            { front: "Tech Popularization", back: "Infrastructure accessibility, distinct from pathological 'addiction'." },
+                            { front: "Digital Substitution", back: "Gaining psychological/physiological satisfaction via digital mediums instead of physical interactions." },
+                            { front: "Entertainment Sub.", back: "Using media/games to eliminate boredom, reducing need for physical socializing." },
+                            { front: "Intimacy Sub.", back: "Using virtual companions to meet intimacy needs at low cost, avoiding real-world friction." }
+                        ],
+                        quiz: [
+                            { q: "Why distinguish 'tech popularization' from 'addiction' in the model?", options: ["To lengthen the questionnaire", "Addiction is an outcome, popularization is an antecedent; confusing them ruins causal inference", "They are perfectly negatively correlated", "To meet qualitative standards"], ans: 1 },
+                            { q: "Which falls under 'Intimacy Substitution'?", options: ["Using Google Maps", "Voice chatting in online games", "Relying heavily on AI companions for romantic fulfillment", "Using online food delivery"], ans: 2 }
+                        ]
+                    },
+                    {
+                        title: "2. Responsibility Transfer & Withdrawal (Me2)",
+                        desc: "The theoretical innovation here is deepening 'Solitary Tendency (Me2)' into both cognitive and behavioral dimensions. Traditional literature focuses on 'Social Withdrawal' or 'libido inhibition'. This model introduces 'Responsibility Transfer'.\n\nThis means: individuals aren't just 'unable' to form relationships; they cognitively rationalize 'refusing' emotional labor and social roles, viewing relationships as high-risk, low-yield burdens.\n\nIn measurement, these variables must be handled carefully. They might be Correlated Mediators rather than a single Latent Construct.",
+                        highlights: ["Core Innovation: Responsibility Transfer", "From 'inability' to cognitive 'refusal'", "Measurement of Latent vs. Correlated variables"],
+                        cards: [
+                            { front: "Solitary Tendency", back: "Not just behavioral isolation, but rejection of relationship responsibilities." },
+                            { front: "Social Withdrawal", back: "Reducing physical participation, preferring controllable private/digital spaces." },
+                            { front: "Responsibility Transfer", back: "Viewing traditional relationship maintenance as an unreasonable burden, rationalizing exit." },
+                            { front: "Correlated Mediators", back: "Statistical consideration: withdrawal and transfer may independently affect outcomes." }
+                        ],
+                        quiz: [
+                            { q: "What unique role does 'Responsibility Transfer' play?", options: ["Explains youth wealth", "Advances relationship avoidance from 'inability' to 'cognitive rationalization and proactive exit'", "Proves traditional marriage superiority", "Advocates government subsidies"], ans: 1 },
+                            { q: "What is the main measurement challenge for Me2?", options: ["Untranslatable to English", "Social desirability bias", "These dimensions may not form a single latent construct, requiring correlated mediator models", "High printing costs"], ans: 2 }
+                        ]
+                    },
+                    {
+                        title: "3. The Vicious Cycle (Me1 ↺ Me2)",
+                        desc: "Human behavior isn't linear. This model proposes a 'Feedback Loop': as individuals develop Me2 (withdrawal), they increase reliance on Me1 (digital substitution) to fill the interpersonal void.\n\nThis self-reinforcing cycle traps individuals deeper in closed digital systems. 'Real interaction muscles' atrophy, and tolerance for physical relationship friction drops to freezing point.\n\nEmpirically, cross-sectional data is insufficient. Longitudinal designs or EMA are required to confirm causal sequence.",
+                        highlights: ["Non-linear dynamics", "Withdrawal boosts digital reliance", "Requires longitudinal design"],
+                        cards: [
+                            { front: "Feedback Loop", back: "System output becomes input; isolated behavior deepens digital reliance." },
+                            { front: "Decreased Tolerance", back: "Long-term digital reliance lowers tolerance for real-world interpersonal friction." },
+                            { front: "Longitudinal Study", back: "Repeated measurements of the same sample over time to establish causality." },
+                            { front: "Cross-sectional Limits", back: "One-time surveys cannot prove the cyclical causality between Me1 and Me2." }
+                        ],
+                        quiz: [
+                            { q: "What does the Me1 ↺ Me2 loop explain?", options: ["Tech directly increases birth rates", "Social withdrawal deepens digital substitution, creating a vicious cycle", "Youth prefer new phones", "VR has replaced reality"], ans: 1 },
+                            { q: "Which research design is best for verifying this loop?", options: ["One-time survey", "Single case interview", "Longitudinal tracking design", "Textual analysis"], ans: 2 }
+                        ]
+                    },
+                    {
+                        title: "4. Endgame Effect (Y)",
+                        desc: "Treating 'Asexual/Childless' as a single outcome (Y) is theoretically ambitious but empirically risky due to high heterogeneity. Dating, sex, marriage, and childbirth involve vastly different timeframes and costs.\n\nThis proposal suggests deconstructing Y into stages: Y1 (dating decline, short-term) → Y2 (sex frequency drop) → Y3 (marriage/fertility intention collapse, long-term resource allocation).\n\nFurthermore, we must avoid the Ecological Fallacy (crossing levels of analysis). Inferring macro national demographic collapse from micro psychological mechanisms requires arguing a 'plausible mechanism', not a direct equation.",
+                        highlights: ["Deconstructing Y: Y1, Y2, Y3", "Differing timeframes and costs", "Beware Ecological Fallacy"],
+                        cards: [
+                            { front: "Outcome Heterogeneity", back: "Dating is short-term; child-rearing is long-term. Tech affects them differently." },
+                            { front: "Stage Outcomes", back: "Splitting Y into dating->sex->marriage facilitates phased empirical validation." },
+                            { front: "Level of Analysis", back: "Inferring macro trends from micro behaviors requires rigorous transitional logic." },
+                            { front: "Plausible Mechanism", back: "Before big data proves it, justify that micro mechanisms logically lead to macro trends." }
+                        ],
+                        quiz: [
+                            { q: "Why deconstruct Y into dating, sex, and marriage intentions?", options: ["To complicate charts", "Because their timeframes and costs differ; bundling them creates high heterogeneity", "Advisor's preference", "For more funding"], ans: 1 },
+                            { q: "Asserting national extinction directly from personal social media addiction risks what?", options: ["Sampling error", "Measurement invalidity", "Ecological fallacy (crossing levels of analysis)", "Low statistical power"], ans: 2 }
+                        ]
+                    },
+                    {
+                        title: "5. Structural Catalysts (Z)",
+                        desc: "Digital substitution doesn't happen in a vacuum. Social structures act as strong Moderators (Z). This model includes 'Economic Pressure' and 'Gender Structure'.\n\n1) Z × (X → Me1): Under high economic stress, do low-cost digital substitutes become more attractive?\n2) Z × (Me1 → Me2): Do rigid gender roles push those seeking substitution to fully exit real relationships to avoid expectations?\n3) Z × (Me2 → Y): Does economic pressure lock in 'responsibility transfer', making the asexual/childless outcome irreversible? These are catalysts for tech toxicity.",
+                        highlights: ["Economic pressure as accelerator", "Exclusion effect of rigid gender roles", "Three-stage moderation"],
+                        cards: [
+                            { front: "Moderator", back: "A third variable affecting the strength/direction of the relationship between X and Y." },
+                            { front: "Economic Catalyst", back: "Low wages make real dating a luxury, amplifying the appeal of virtual interactions." },
+                            { front: "Gender Structure", back: "Rigid expectations push youths unable to meet them into total social withdrawal (lying flat)." },
+                            { front: "Three-stage Check", back: "Assessing where Z exerts the strongest moderating effect in the causal chain." }
+                        ],
+                        quiz: [
+                            { q: "What role does 'Economic Pressure' play?", options: ["Independent Variable (X)", "Mediator", "Moderator (Z)", "Control Variable"], ans: 2 },
+                            { q: "How do 'rigid gender roles' affect the model?", options: ["Boosts real birth rates", "Accelerates social withdrawal (Me2) for youth unable to meet societal expectations", "Reduces device dependency", "Improves pay equity"], ans: 1 }
+                        ]
+                    },
+                    {
+                        title: "6. Empirical Design",
+                        desc: "To turn this framework into an empirical project, start with an 'exploratory theoretical study on East Asian youth, followed by phased longitudinal validation'.\n\nFirst, establish a clean core: 'Tech Popularization → Social Withdrawal → Dating Decline'. Then, use Multi-group Analysis or RI-CLPM to handle collinearity and feedback loops. Select tools carefully (e.g., BSMAS, HQ-25) to avoid over-reliance on single scales, and use Monte Carlo simulation for power.\n\nIn tone, shift from 'absolute demographic disaster' to 'hypothesized behavioral mechanisms' to increase academic acceptability and falsifiability.",
+                        highlights: ["Phased empirical strategy", "RI-CLPM for longitudinal data", "Tone control and neutral hypotheses"],
+                        cards: [
+                            { front: "Phased Strategy", back: "Establish the basic causal chain before adding complex moderators and loops." },
+                            { front: "RI-CLPM", back: "Random Intercept Cross-Lagged Panel Model for separating within/between group variance." },
+                            { front: "Multi-group Analysis", back: "Comparing SEM path coefficients across different groups (e.g., high/low economic stress)." },
+                            { front: "Tone Control", back: "Academic proposals must remain falsifiable; change 'proven disaster' to 'hypothesis to be tested'." }
+                        ],
+                        quiz: [
+                            { q: "What is the recommended strategy for academic peer review?", options: ["Test everything at once", "Use 'Ultimate Disaster' in title", "Phased validation starting with East Asian youth", "Abandon quantitative methods"], ans: 2 },
+                            { q: "Which tone is most appropriate for a rigorous proposal?", options: ["Tech is proven to destroy humanity", "The model expects tech to affect intentions via specific mechanisms, pending validation", "Smartphones solely cause childlessness", "Unplugging the internet will fix birth rates tomorrow"], ans: 1 }
+                        ]
+                    }
+                ],
+                lab: {
+                    title: "7. Interactive Lab",
+                    simTitle: "System Dynamics: Parameter Moderation",
+                    simDesc: "Adjust 'Tech Exposure' and 'Economic Stress' to observe their theoretical impact on 'Digital Substitution(Me1)', 'Withdrawal(Me2)', and the 'Asexual/Childless(Y)' outcome.",
+                    xLabel: "Tech Exposure (X)",
+                    zLabel: "Economic/Structural Stress (Z)",
+                    btnSimulate: "Run Simulation",
+                    resultTitle: "Theoretical Prediction Matrix",
+                    resMe1: "Digital Substitution Reliance", resMe2: "Responsibility Transfer Index", resY: "Asexual/Childless Probability"
+                }
+            }
+        };
+
+        // --- 主程式 ---
+        const App = () => {
+            const [lang, setLang] = useState('tw');
+            const [isDark, setIsDark] = useState(true);
+            const [activeTab, setActiveTab] = useState(0);
+            const [menuOpen, setMenuOpen] = useState(false);
+            const [ttsSpeaking, setTtsSpeaking] = useState(false);
+            
+            // 學習歷程分析 State
+            const [analytics, setAnalytics] = useState({
+                timeSpent: Array(10).fill(0),
+                clicks: 0,
+                cardsFlipped: 0,
+                quizCorrect: 0
+            });
+            const [userInfo, setUserInfo] = useState({ group: '', studentId: '', name: '' });
+
+            const t = dict[lang];
+
+            // Toggle Theme
+            useEffect(() => {
+                if (isDark) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }, [isDark]);
+
+            // Timer Tracker
+            useEffect(() => {
+                const timer = setInterval(() => {
+                    setAnalytics(prev => {
+                        const newTime = [...prev.timeSpent];
+                        newTime[activeTab] += 1;
+                        return { ...prev, timeSpent: newTime };
+                    });
+                }, 1000);
+                return () => clearInterval(timer);
+            }, [activeTab]);
+
+            // Global Click Tracker
+            useEffect(() => {
+                const handleClick = () => setAnalytics(prev => ({ ...prev, clicks: prev.clicks + 1 }));
+                window.addEventListener('click', handleClick);
+                return () => window.removeEventListener('click', handleClick);
+            }, []);
+
+            // TTS Function
+            const speak = (action) => {
+                window.speechSynthesis.cancel();
+                setTtsSpeaking(false);
+                if (action === 'play') {
+                    const utterance = new SpeechSynthesisUtterance();
+                    let textToRead = "";
+                    if (activeTab === 0) textToRead = t.content[0].title + ". " + t.content[0].desc;
+                    else if (activeTab >= 1 && activeTab <= 6) textToRead = t.content[activeTab].title + ". " + t.content[activeTab].desc;
+                    else if (activeTab === 7) textToRead = t.lab.title + ". " + t.lab.simDesc;
+                    else textToRead = t.nav[activeTab];
+
+                    utterance.text = textToRead;
+                    // Try to set voice based on language
+                    const voices = window.speechSynthesis.getVoices();
+                    if (lang === 'tw') {
+                        utterance.lang = 'zh-TW';
+                        const twVoice = voices.find(v => v.lang.includes('zh-TW') || v.lang.includes('zh-HK'));
+                        if (twVoice) utterance.voice = twVoice;
+                    } else {
+                        utterance.lang = 'en-GB';
+                        const enVoice = voices.find(v => v.lang.includes('en-GB') && v.name.includes('Male'));
+                        if (enVoice) utterance.voice = enVoice;
+                    }
+                    
+                    utterance.onend = () => setTtsSpeaking(false);
+                    window.speechSynthesis.speak(utterance);
+                    setTtsSpeaking(true);
+                } else if (action === 'pause') {
+                    window.speechSynthesis.pause();
+                }
+            };
+
+            // Download CSV
+            const handleExport = () => {
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                csvContent += "Group,Student ID,Name,Date,Total Clicks,Cards Flipped,Quiz Correct\n";
+                const date = new Date().toISOString().split('T')[0];
+                csvContent += `${userInfo.group},${userInfo.studentId},${userInfo.name},${date},${analytics.clicks},${analytics.cardsFlipped},${analytics.quizCorrect}\n\n`;
+                
+                csvContent += "Module,Time Spent (Seconds)\n";
+                t.nav.forEach((navName, idx) => {
+                    csvContent += `${navName},${analytics.timeSpent[idx]}\n`;
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `SPA_${userInfo.group}_${userInfo.name}_${date}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // Components
+            const NavMenu = () => (
+                <div className="relative z-50">
+                    <button onClick={() => setMenuOpen(!menuOpen)} className="text-2xl p-2 hover:text-bcg-accent transition">
+                        <i className="fas fa-bars"></i>
+                    </button>
+                    {menuOpen && (
+                        <div className="absolute top-12 left-0 w-64 bg-white dark:bg-bcg-darkcard border border-gray-200 dark:border-gray-700 shadow-xl rounded-md overflow-hidden">
+                            {t.nav.map((item, idx) => (
+                                <button key={idx} 
+                                    onClick={() => { setActiveTab(idx); setMenuOpen(false); window.scrollTo(0,0); }}
+                                    className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition ${activeTab === idx ? 'bg-bcg-gray text-bcg-navy dark:bg-gray-800 dark:text-white font-bold' : ''}`}>
+                                    {item}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+
+            // Flip Card Component
+            const FlipCard = ({ card }) => {
+                const [flipped, setFlipped] = useState(false);
+                return (
+                    <div className="relative w-full h-48 perspective-1000 cursor-pointer" 
+                         onClick={() => { setFlipped(!flipped); if(!flipped) setAnalytics(prev => ({...prev, cardsFlipped: prev.cardsFlipped + 1})) }}>
+                        <div className={`w-full h-full absolute transform-style-3d transition-transform-700 ${flipped ? 'rotate-y-180' : ''}`}>
+                            {/* Front */}
+                            <div className="absolute w-full h-full backface-hidden bg-white dark:bg-bcg-darkcard border-t-4 border-bcg-navy dark:border-bcg-accent shadow-md flex items-center justify-center p-4 text-center rounded-b-md">
+                                <h3 className="font-bold text-lg text-bcg-navy dark:text-white">{card.front}</h3>
+                                <div className="absolute bottom-2 text-xs text-gray-400"><i className="fas fa-sync-alt mr-1"></i>{t.ui.flip}</div>
+                            </div>
+                            {/* Back */}
+                            <div className="absolute w-full h-full backface-hidden rotate-y-180 bg-bcg-navy dark:bg-gray-800 text-white shadow-md flex items-center justify-center p-6 text-center rounded-md">
+                                <p className="text-sm leading-relaxed">{card.back}</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const ContentModule = ({ data, tabIndex }) => {
+                const [cardIdx, setCardIdx] = useState(0);
+                const [quizIdx, setQuizIdx] = useState(0);
+                const [quizAns, setQuizAns] = useState(null);
+
+                return (
+                    <div className="max-w-4xl mx-auto py-8 px-4 animate-fade-in">
+                        <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">{data.title}</h1>
+                        
+                        {/* Highlights */}
+                        <div className="flex flex-wrap gap-2 mb-6">
+                            {data.highlights.map((hl, i) => (
+                                <span key={i} className="bg-bcg-gray dark:bg-gray-800 text-bcg-navy dark:text-bcg-accent px-3 py-1 text-sm font-semibold rounded-full border border-gray-200 dark:border-gray-700">
+                                    <i className="fas fa-check-circle mr-2"></i>{hl}
+                                </span>
+                            ))}
+                        </div>
+
+                        {/* Description */}
+                        <div className="prose dark:prose-invert max-w-none mb-10 text-lg leading-loose whitespace-pre-line">
+                            {data.desc}
+                        </div>
+
+                        {/* Image Placeholder */}
+                        <div className="w-full h-48 bg-gray-200 dark:bg-gray-800 rounded-lg flex items-center justify-center mb-10 border border-dashed border-gray-400">
+                            <span className="text-gray-500 dark:text-gray-400"><i className="far fa-image mr-2"></i></span>
+                        </div>
+
+                        {/* Flip Cards Section */}
+                        {data.cards && (
+                            <div className="mb-12 bg-gray-50 dark:bg-gray-900/50 p-6 rounded-lg">
+                                <h2 className="text-xl font-bold mb-4 flex items-center"><i className="fas fa-clone mr-2 text-bcg-accent"></i> Key Concepts ({cardIdx/2 + 1}/{(data.cards.length/2)})</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                    <FlipCard card={data.cards[cardIdx]} />
+                                    {data.cards[cardIdx+1] && <FlipCard card={data.cards[cardIdx+1]} />}
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setCardIdx(0)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm">{t.ui.retryCard}</button>
+                                    {(cardIdx + 2) < data.cards.length && (
+                                        <button onClick={() => setCardIdx(cardIdx + 2)} className="px-4 py-2 bg-bcg-navy text-white rounded hover:bg-opacity-90 transition text-sm">{t.ui.nextCard}</button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Quiz Section */}
+                        {data.quiz && (
+                            <div className="mb-8 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+                                <h2 className="text-xl font-bold mb-4 flex items-center"><i className="fas fa-tasks mr-2 text-bcg-accent"></i> Knowledge Check</h2>
+                                <div className="mb-4">
+                                    <p className="font-semibold mb-3">{data.quiz[quizIdx].q}</p>
+                                    <div className="space-y-2">
+                                        {data.quiz[quizIdx].options.map((opt, i) => (
+                                            <button key={i} 
+                                                onClick={() => {
+                                                    setQuizAns(i);
+                                                    if(i === data.quiz[quizIdx].ans) setAnalytics(prev => ({...prev, quizCorrect: prev.quizCorrect + 1}));
+                                                }}
+                                                disabled={quizAns !== null}
+                                                className={`w-full text-left p-3 rounded border transition ${
+                                                    quizAns === null ? 'border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800' :
+                                                    i === data.quiz[quizIdx].ans ? 'bg-green-100 border-green-500 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
+                                                    quizAns === i ? 'bg-red-100 border-red-500 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'opacity-50'
+                                                }`}>
+                                                {opt}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {quizAns !== null && (
+                                        <div className={`mt-4 p-3 rounded font-bold ${quizAns === data.quiz[quizIdx].ans ? 'text-green-600' : 'text-red-500'}`}>
+                                            {quizAns === data.quiz[quizIdx].ans ? t.ui.correct : t.ui.wrong}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex justify-end gap-2 mt-4">
+                                    <button onClick={() => {setQuizIdx(0); setQuizAns(null);}} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm">{t.ui.retryQuiz}</button>
+                                    {(quizIdx + 1) < data.quiz.length && (
+                                        <button onClick={() => {setQuizIdx(quizIdx + 1); setQuizAns(null);}} className="px-4 py-2 bg-bcg-navy text-white rounded hover:bg-opacity-90 transition text-sm">{t.ui.nextQuiz}</button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            const InteractiveLab = () => {
+                const [xVal, setXVal] = useState(50);
+                const [zVal, setZVal] = useState(50);
+                const [simResult, setSimResult] = useState(null);
+
+                const runSim = () => {
+                    const x = xVal / 100; const z = zVal / 100;
+                    // Mock calculation based on conceptual model
+                    const me1 = Math.min(100, Math.round((x * 0.6 + z * x * 0.4) * 100));
+                    const me2 = Math.min(100, Math.round((me1 * 0.5 + z * me1 * 0.5) * 100));
+                    const y = Math.min(100, Math.round((me2 * 0.7 + z * 0.3) * 100));
+                    setSimResult({ me1, me2, y });
+                };
+
+                return (
+                    <div className="max-w-4xl mx-auto py-8 px-4">
+                        <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">{t.lab.title}</h1>
+                        <p className="mb-8 text-lg">{t.lab.simDesc}</p>
+                        
+                        <div className="bg-white dark:bg-bcg-darkcard p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                            <h2 className="text-xl font-bold mb-6"><i className="fas fa-sliders-h mr-2 text-bcg-accent"></i>{t.lab.simTitle}</h2>
+                            
+                            <div className="mb-6">
+                                <label className="block mb-2 font-semibold">{t.lab.xLabel}: {xVal}%</label>
+                                <input type="range" min="0" max="100" value={xVal} onChange={e => setXVal(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"/>
+                            </div>
+                            
+                            <div className="mb-8">
+                                <label className="block mb-2 font-semibold">{t.lab.zLabel}: {zVal}%</label>
+                                <input type="range" min="0" max="100" value={zVal} onChange={e => setZVal(e.target.value)} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"/>
+                            </div>
+
+                            <button onClick={runSim} className="w-full py-3 bg-bcg-green text-white font-bold rounded hover:bg-opacity-90 transition">
+                                {t.lab.btnSimulate}
+                            </button>
+
+                            {simResult && (
+                                <div className="mt-8 p-6 bg-gray-50 dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-600">
+                                    <h3 className="font-bold text-lg mb-4 text-center">{t.lab.resultTitle}</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <div className="flex justify-between mb-1 text-sm font-semibold"><span>{t.lab.resMe1}</span><span>{simResult.me1}%</span></div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700"><div className="bg-blue-600 h-2.5 rounded-full" style={{width: `${simResult.me1}%`}}></div></div>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between mb-1 text-sm font-semibold"><span>{t.lab.resMe2}</span><span>{simResult.me2}%</span></div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700"><div className="bg-purple-600 h-2.5 rounded-full" style={{width: `${simResult.me2}%`}}></div></div>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between mb-1 text-sm font-semibold"><span>{t.lab.resY}</span><span>{simResult.y}%</span></div>
+                                            <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700"><div className="bg-red-600 h-2.5 rounded-full" style={{width: `${simResult.y}%`}}></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const AnalyticsPage = () => (
+                <div className="max-w-4xl mx-auto py-8 px-4">
+                    <h1 className="text-3xl font-bold mb-6 text-bcg-navy dark:text-white border-b-2 border-bcg-accent pb-2">{t.nav[9]}</h1>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        {t.ui.stats.map((lbl, i) => {
+                            const vals = [analytics.timeSpent.reduce((a,b)=>a+b,0), analytics.clicks, analytics.cardsFlipped, analytics.quizCorrect];
+                            return (
+                                <div key={i} className="bg-white dark:bg-bcg-darkcard p-4 rounded-lg shadow text-center border-t-4 border-bcg-navy dark:border-bcg-accent">
+                                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">{lbl}</div>
+                                    <div className="text-2xl font-bold text-bcg-navy dark:text-white">{vals[i]}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="bg-white dark:bg-bcg-darkcard p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                        <h2 className="text-xl font-bold mb-4">Export Settings</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <input type="text" placeholder={t.ui.group + " (e.g., G1)"} className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600" value={userInfo.group} onChange={e=>setUserInfo({...userInfo, group: e.target.value})}/>
+                            <input type="text" placeholder={t.ui.studentId + " (e.g., 113212599)"} className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600" value={userInfo.studentId} onChange={e=>setUserInfo({...userInfo, studentId: e.target.value})}/>
+                            <input type="text" placeholder={t.ui.name + " (e.g., Shihmin Lo)"} className="p-2 border rounded dark:bg-gray-800 dark:border-gray-600" value={userInfo.name} onChange={e=>setUserInfo({...userInfo, name: e.target.value})}/>
+                        </div>
+                        <div className="flex gap-4">
+                            <button onClick={handleExport} className="flex-1 bg-bcg-navy text-white py-2 rounded hover:bg-opacity-90 transition font-bold"><i className="fas fa-download mr-2"></i>{t.ui.export}</button>
+                            <button onClick={() => window.location.reload()} className="px-6 bg-red-600 text-white py-2 rounded hover:bg-red-700 transition"><i className="fas fa-trash-alt mr-2"></i>{t.ui.clear}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Main Render Logic
+            const renderContent = () => {
+                if (activeTab >= 0 && activeTab <= 6) return <ContentModule data={t.content[activeTab]} tabIndex={activeTab} />;
+                if (activeTab === 7) return <InteractiveLab />;
+                if (activeTab === 8) return <div className="max-w-4xl mx-auto py-8 text-center text-xl mt-20">{t.nav[8]} - Content Pending</div>;
+                if (activeTab === 9) return <AnalyticsPage />;
+            };
+
+            return (
+                <>
+                    {/* Header */}
+                    <header className="bg-white dark:bg-bcg-darkcard shadow-md sticky top-0 z-40 h-16 flex items-center justify-between px-4 lg:px-8 border-b border-gray-200 dark:border-gray-800 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <NavMenu />
+                            <h1 className="font-bold text-lg md:text-xl text-bcg-navy dark:text-white cursor-pointer truncate" onClick={() => window.scrollTo(0,0)}>
+                                <i className="fas fa-project-diagram mr-2 text-bcg-accent"></i>{t.brand}
+                            </h1>
+                        </div>
+                        <div className="flex items-center gap-3 md:gap-6 text-sm">
+                            <div className="hidden md:flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-full">
+                                <button onClick={() => speak('play')} className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-600 flex items-center justify-center transition" title={t.ui.play}><i className="fas fa-play text-green-600 dark:text-green-400"></i></button>
+                                <button onClick={() => speak('pause')} className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-600 flex items-center justify-center transition" title={t.ui.pause}><i className="fas fa-pause text-yellow-600 dark:text-yellow-400"></i></button>
+                                <button onClick={() => speak('stop')} className="w-8 h-8 rounded-full hover:bg-white dark:hover:bg-gray-600 flex items-center justify-center transition" title={t.ui.stop}><i className="fas fa-stop text-red-600 dark:text-red-400"></i></button>
+                            </div>
+                            <button onClick={() => setLang(lang === 'tw' ? 'en' : 'tw')} className="font-bold px-3 py-1 bg-bcg-navy text-white rounded hover:bg-opacity-80 transition">{t.ui.lang}</button>
+                            <button onClick={() => setIsDark(!isDark)} className="text-xl" title={isDark ? t.ui.themeDark : t.ui.themeLight}>
+                                {isDark ? <i className="fas fa-sun text-yellow-400"></i> : <i className="fas fa-moon text-gray-600"></i>}
+                            </button>
+                        </div>
+                    </header>
+
+                    {/* Main Content Area */}
+                    <main className="flex-grow pb-24">
+                        {renderContent()}
+                        
+                        {/* Pagination Buttons */}
+                        <div className="max-w-4xl mx-auto px-4 flex justify-between mt-8 border-t border-gray-200 dark:border-gray-700 pt-6">
+                            <button onClick={() => { if(activeTab > 0) { setActiveTab(activeTab - 1); window.scrollTo(0,0); } }} 
+                                    className={`px-4 py-2 flex items-center ${activeTab === 0 ? 'invisible' : 'text-bcg-navy dark:text-bcg-accent hover:underline font-bold'}`}>
+                                <i className="fas fa-chevron-left mr-2"></i> {t.ui.prev}
+                            </button>
+                            <button onClick={() => { if(activeTab < 9) { setActiveTab(activeTab + 1); window.scrollTo(0,0); } }} 
+                                    className={`px-4 py-2 flex items-center ${activeTab === 9 ? 'invisible' : 'text-bcg-navy dark:text-bcg-accent hover:underline font-bold'}`}>
+                                {t.ui.next} <i className="fas fa-chevron-right ml-2"></i>
+                            </button>
+                        </div>
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-white dark:bg-bcg-darkcard border-t border-gray-200 dark:border-gray-800 h-8 flex items-center justify-between px-4 lg:px-8 text-xs text-gray-500 dark:text-gray-400 fixed bottom-0 w-full z-40">
+                        <div>Version 2026.04 | &copy; 2026 All Rights Reserved.</div>
+                        <div className="flex items-center gap-4">
+                            <span>Architect: <a href="https://www.ibs.ncnu.edu.tw/index.php/faculty/tenured-professor/299-smlo" target="_blank" className="text-bcg-navy dark:text-bcg-accent hover:underline font-bold">Prof. Shihmin Lo</a></span>
+                            <button onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} className="hover:text-bcg-navy dark:hover:text-white transition"><i className="fas fa-arrow-up mr-1"></i>Top</button>
+                        </div>
+                    </footer>
+                </>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
